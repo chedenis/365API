@@ -1,7 +1,8 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
-const cors = require("cors"); // Import the cors middleware
+const cors = require("cors");
+const helmet = require("helmet"); // Import helmet
+const rateLimit = require("express-rate-limit"); // Import rate limiter
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
@@ -10,32 +11,65 @@ const facilityAuthRoutes = require("./routes/facilityAuth");
 
 dotenv.config();
 
+process.env.NODE_ENV = process.env.NODE_ENV || "development";
+const envFile =
+  process.env.NODE_ENV === "production"
+    ? ".env.production"
+    : ".env.development";
+dotenv.config({ path: envFile });
+
 const app = express();
 
-// Use CORS middleware
+// Use helmet to secure the app by setting various HTTP headers
+app.use(helmet());
+
+// Set up rate limiter: maximum of 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
+
+// Apply rate limiter to all requests
+app.use(limiter);
+
+// CORS configuration
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? process.env.PROD_CORS_ORIGINS.split(",")
+    : process.env.DEV_CORS_ORIGINS.split(",");
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:8081",
-      "http://10.0.2.2:8081",
-      "http://localhost:3000",
-    ], // Replace with the frontend origin you are using
+    origin: allowedOrigins,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Enable this if you need to send cookies or authorization headers
+    credentials: true,
   })
 );
+
 app.use(express.json());
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
 
 connectDB();
 
+// Define routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/facility", facilityRoutes);
 app.use("/api/facility-auth", facilityAuthRoutes);
 
-const PORT = process.env.PORT || 5000;
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(
+    `Server is running on port ${PORT} in ${process.env.NODE_ENV} mode`
+  );
 });
