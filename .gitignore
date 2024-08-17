@@ -1,0 +1,6 @@
+# Ignore environment configuration files
+.env
+.env.development
+.env.production
+node_modules/
+
