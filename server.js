@@ -1,13 +1,16 @@
+console.log("Starting server.js");
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet"); // Import helmet
 const rateLimit = require("express-rate-limit"); // Import rate limiter
+const session = require("express-session"); // Import session for session management
+const passport = require("passport"); // Import passport for OAuth
+
 const connectDB = require("./config/db");
-const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/user");
-const facilityRoutes = require("./routes/facility");
-const facilityAuthRoutes = require("./routes/facilityAuth");
+
+console.log("Loading dotenv");
 
 dotenv.config();
 
@@ -17,6 +20,11 @@ const envFile =
     ? ".env.production"
     : ".env.development";
 dotenv.config({ path: envFile });
+
+console.log("Google Client ID:", process.env.GOOGLE_CLIENT_ID);
+console.log("Google Client Secret:", process.env.GOOGLE_CLIENT_SECRET);
+console.log("Facebook App ID:", process.env.FACEBOOK_APP_ID);
+console.log("Facebook App Secret:", process.env.FACEBOOK_APP_SECRET);
 
 const app = express();
 
@@ -50,9 +58,27 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Initialize Passport and session handling
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === "production" },
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 connectDB();
 
 // Define routes
+const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/user");
+const facilityRoutes = require("./routes/facility");
+const facilityAuthRoutes = require("./routes/facilityAuth");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/facility", facilityRoutes);

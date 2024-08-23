@@ -1,7 +1,6 @@
 // controllers/facilityAuthController.js
 
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const FacilityAuth = require("../models/FacilityAuth");
 const Facility = require("../models/Facility");
 const getCoordinates = require("../utils/getCoordinates");
@@ -108,11 +107,8 @@ exports.loginFacility = async (req, res) => {
     const isMatch = await bcrypt.compare(password, facilityAuth.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid password" });
 
-    const token = jwt.sign(
-      { id: facilityAuth.facility._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = { id: "foo" };
+
     res.status(200).json({ token });
   } catch (err) {
     console.error("Error logging in", err);
