@@ -1,5 +1,4 @@
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const Auth = require("../models/Auth");
 const User = require("../models/User");
 const getCoordinates = require("../utils/getCoordinates");
@@ -98,9 +97,10 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, auth.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid password" });
 
-    const token = jwt.sign({ id: auth.user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // const token = jwt.sign({ id: auth.user._id }, process.env.JWT_SECRET, {
+    //   expiresIn: "1h",
+    // });
+    const token = "foo";
     console.log("heres the user found", auth.user);
     if (auth.user && !auth.user.email) {
       auth.user.email = username;
