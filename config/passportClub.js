@@ -10,26 +10,22 @@ const bcrypt = require("bcryptjs");
 passport.use(
   "club-local",
   new LocalStrategy(
-    { usernameField: "email" }, // Use "email" instead of "username"
+    { usernameField: "email" },
     async (email, password, done) => {
       try {
-        // Find ClubAuth entry by email
-        let clubAuth = await ClubAuth.findOne({ email });
-
-        if (clubAuth) {
-          // Compare passwords
-          const isMatch = await bcrypt.compare(password, clubAuth.password);
-          if (!isMatch) {
-            return done(null, false, { message: "Incorrect password." });
-          }
-
-          // Return the clubAuth document (club data can be fetched based on this)
-          return done(null, clubAuth);
-        } else {
+        const clubAuth = await ClubAuth.findOne({ email });
+        if (!clubAuth) {
           return done(null, false, {
             message: "No account found with that email.",
           });
         }
+
+        const isMatch = await bcrypt.compare(password, clubAuth.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Incorrect password." });
+        }
+
+        return done(null, clubAuth);
       } catch (err) {
         return done(err);
       }
@@ -48,15 +44,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails ? profile.emails[0].value : null;
-
-        if (!email) {
-          return done(null, false, {
-            message: "No email found with Google account.",
-          });
-        }
-
-        // Check if the club already exists in ClubAuth
+        const email = profile.emails[0].value;
         let clubAuth = await ClubAuth.findOne({
           $or: [{ googleId: profile.id }, { email }],
         });
@@ -66,22 +54,18 @@ passport.use(
             clubAuth.googleId = profile.id;
             await clubAuth.save();
           }
-
           return done(null, clubAuth);
         } else {
-          // Create new ClubAuth and PendingClub for new sign-up
           const newPendingClub = new PendingClub({ email });
-
           const savedPendingClub = await newPendingClub.save();
 
           const newClubAuth = new ClubAuth({
             googleId: profile.id,
-            email: email,
-            pendingClub: savedPendingClub._id, // Link to PendingClub
+            email,
+            pendingClub: savedPendingClub._id,
           });
 
           await newClubAuth.save();
-
           return done(null, newClubAuth);
         }
       } catch (err) {
@@ -103,18 +87,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email =
-          profile.emails && profile.emails.length > 0
-            ? profile.emails[0].value
-            : null;
-
-        if (!email) {
-          return done(null, false, {
-            message: "No email found with Facebook account.",
-          });
-        }
-
-        // Check if the club already exists in ClubAuth
+        const email = profile.emails ? profile.emails[0].value : null;
         let clubAuth = await ClubAuth.findOne({
           $or: [{ facebookId: profile.id }, { email }],
         });
@@ -124,22 +97,18 @@ passport.use(
             clubAuth.facebookId = profile.id;
             await clubAuth.save();
           }
-
           return done(null, clubAuth);
         } else {
-          // Create new ClubAuth and PendingClub for new sign-up
           const newPendingClub = new PendingClub({ email });
-
           const savedPendingClub = await newPendingClub.save();
 
           const newClubAuth = new ClubAuth({
             facebookId: profile.id,
-            email: email,
-            pendingClub: savedPendingClub._id, // Link to PendingClub
+            email,
+            pendingClub: savedPendingClub._id,
           });
 
           await newClubAuth.save();
-
           return done(null, newClubAuth);
         }
       } catch (err) {

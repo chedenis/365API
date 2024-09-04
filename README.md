@@ -1,9 +1,5 @@
 # 365API
 
-Here's the documentation for your API that you can add to your README file. It covers the login/registration flow, the use of JWT tokens, and the routes for managing `PendingClub` and `Club` entities.
-
----
-
 ## API Documentation
 
 ### Authentication Flow
@@ -295,8 +291,209 @@ AUTHORIZED_EMAILS=email2@example.com,email3@example.com
 
 ```
 
+## Club Authentication Routes
+
+### 1. **Register a Club (Local Strategy)**
+
+#### Endpoint:
+
+- **URL**: `/api/club-auth/register`
+- **Method**: `POST`
+- **Description**: Register a new club using email and password. This creates a new `ClubAuth` and a `PendingClub`.
+
+#### Request Body:
+
+```json
+{
+  "email": "club@example.com",
+  "password": "Password123",
+  "clubDetails": {
+    "clubName": "New Club",
+    "status": "Not Ready"
+  }
+}
+```
+
+- **email**: The email address for the club (used for login).
+- **password**: The club’s password (will be hashed and stored securely).
+- **clubDetails**: Initial details for the `PendingClub` (e.g., club name and status).
+
+#### Response (Success):
+
+```json
+{
+  "message": "Club registered successfully",
+  "clubAuth": {
+    "id": "newClubAuthId",
+    "email": "club@example.com",
+    "pendingClub": "pendingClubId123"
+  }
+}
+```
+
+- **message**: Confirmation message.
+- **clubAuth**: The created `ClubAuth` with the `pendingClub` reference.
+
+#### Response (Error):
+
+```json
+{
+  "error": "Club with this email already exists"
+}
+```
+
 ---
 
-This documentation should give a clear and structured view of how your API works, how to authenticate, and how to interact with `PendingClub` and `Club` resources. You can add this directly to your README file.
+### 2. **Login a Club (Local Strategy)**
 
-Let me know if you need further tweaks or adjustments!
+#### Endpoint:
+
+- **URL**: `/api/club-auth/login`
+- **Method**: `POST`
+- **Description**: Login a club using email and password. If successful, the club is authenticated, and the session is started.
+
+#### Request Body:
+
+```json
+{
+  "email": "club@example.com",
+  "password": "Password123"
+}
+```
+
+- **email**: The email address used to register the club.
+- **password**: The club’s password.
+
+#### Response (Success):
+
+```json
+{
+  "message": "Club logged in successfully",
+  "clubAuth": {
+    "id": "clubAuthId123",
+    "email": "club@example.com",
+    "pendingClub": "pendingClubId123",
+    "club": null // If the club is still pending
+  }
+}
+```
+
+- **message**: Confirmation message.
+- **clubAuth**: The authenticated `ClubAuth` object, including the pending or promoted club.
+
+#### Response (Error):
+
+```json
+{
+  "error": "Invalid credentials"
+}
+```
+
+---
+
+### 3. **Google OAuth Login/Register**
+
+#### Endpoint:
+
+- **URL**: `/api/club-auth/google`
+- **Method**: `GET`
+- **Description**: Redirects the user to Google for OAuth login or registration.
+
+#### Usage:
+
+- Clicking on a "Login with Google" button will redirect the user to this endpoint.
+
+#### Example (Frontend):
+
+```javascript
+const loginWithGoogle = () => {
+  window.location.href = "/api/club-auth/google";
+};
+```
+
+#### Callback Endpoint:
+
+- **URL**: `/api/club-auth/google/callback`
+- **Method**: `GET`
+- **Description**: This is the endpoint that Google redirects back to after authentication. The backend handles this, and the user is logged in or registered.
+
+---
+
+### 4. **Facebook OAuth Login/Register**
+
+#### Endpoint:
+
+- **URL**: `/api/club-auth/facebook`
+- **Method**: `GET`
+- **Description**: Redirects the user to Facebook for OAuth login or registration.
+
+#### Usage:
+
+- Clicking on a "Login with Facebook" button will redirect the user to this endpoint.
+
+#### Example (Frontend):
+
+```javascript
+const loginWithFacebook = () => {
+  window.location.href = "/api/club-auth/facebook";
+};
+```
+
+#### Callback Endpoint:
+
+- **URL**: `/api/club-auth/facebook/callback`
+- **Method**: `GET`
+- **Description**: This is the endpoint that Facebook redirects back to after authentication. The backend handles this, and the user is logged in or registered.
+
+---
+
+### 5. **Logout a Club**
+
+#### Endpoint:
+
+- **URL**: `/api/club-auth/logout`
+- **Method**: `GET`
+- **Description**: Logs out the currently authenticated club.
+
+#### Response (Success):
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### Session Management:
+
+- **Session Persistence**: Passport handles the session after login, keeping the user logged in across requests until the session expires or the user logs out.
+- **Session Expiration**: The session duration is configurable, typically set to expire after a certain period or when the browser is closed.
+
+### Error Handling:
+
+- The endpoints return proper error messages when registration or login fails, such as when a club already exists or when credentials are invalid.
+
+---
+
+### Example Workflow:
+
+1. **Register**:
+
+   - The user fills out the registration form (email, password, and club details) and submits it to the `/register` endpoint.
+   - The club is created, and the user is logged in automatically.
+
+2. **Login**:
+
+   - The user enters their email and password to log in via the `/login` endpoint.
+   - On successful login, the session starts, and the user is authenticated.
+
+3. **Google/Facebook OAuth**:
+
+   - The user clicks a "Login with Google/Facebook" button, which redirects them to the respective OAuth provider.
+   - After authentication, the user is redirected back to your app and logged in or registered.
+
+4. **Logout**:
+   - The user clicks "Logout," which calls the `/logout` route to end the session.
+
+---
