@@ -21,11 +21,6 @@ const envFile =
     : ".env.development";
 dotenv.config({ path: envFile });
 
-console.log("Google Client ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("Google Client Secret:", process.env.GOOGLE_CLIENT_SECRET);
-console.log("Facebook App ID:", process.env.FACEBOOK_APP_ID);
-console.log("Facebook App Secret:", process.env.FACEBOOK_APP_SECRET);
-
 const app = express();
 
 // Use helmet to secure the app by setting various HTTP headers
