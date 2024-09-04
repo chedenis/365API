@@ -1,15 +1,15 @@
-// controllers/facilityAuthController.js
+// controllers/clubAuthController.js
 
 const bcrypt = require("bcrypt");
-const FacilityAuth = require("../models/FacilityAuth");
-const Facility = require("../models/Facility");
+const ClubAuth = require("../models/ClubAuth");
+const Club = require("../models/Club");
 const getCoordinates = require("../utils/getCoordinates");
 
-exports.registerFacility = async (req, res) => {
+exports.registerClub = async (req, res) => {
   console.log("we are creating a club");
   try {
     const {
-      facilityName,
+      clubName,
       address,
       email,
       password,
@@ -36,22 +36,22 @@ exports.registerFacility = async (req, res) => {
       operatingHours,
     } = req.body;
 
-    if (!facilityName || !address || !email || !password) {
+    if (!clubName || !address || !email || !password) {
       return res.status(400).json({
-        error: "Facility name, address, email, and password are required",
+        error: "Club name, address, email, and password are required",
       });
     }
 
-    const existingFacilityAuth = await FacilityAuth.findOne({ email });
-    if (existingFacilityAuth) {
+    const existingClubAuth = await ClubAuth.findOne({ email });
+    if (existingClubAuth) {
       return res.status(400).json({ error: "Email already in use" });
     }
 
     const fullAddress = `${address.street}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
-    const newFacility = new Facility({
-      facilityName,
+    const newClub = new Club({
+      clubName,
       address: { ...address, latitude, longitude },
       email,
       website,
@@ -76,35 +76,32 @@ exports.registerFacility = async (req, res) => {
       parkingType,
       operatingHours,
     });
-    await newFacility.save();
+    await newClub.save();
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newFacilityAuth = new FacilityAuth({
+    const newClubAuth = new ClubAuth({
       email,
       password: hashedPassword,
-      facility: newFacility._id,
+      club: newClub._id,
     });
 
-    await newFacilityAuth.save();
-    res.status(201).json({ message: "Facility registered successfully" });
+    await newClubAuth.save();
+    res.status(201).json({ message: "Club registered successfully" });
   } catch (err) {
-    console.error("Error registering facility", err);
+    console.error("Error registering club", err);
     res
       .status(500)
-      .json({ error: "Error registering facility", details: err.message });
+      .json({ error: "Error registering club", details: err.message });
   }
 };
 
-exports.loginFacility = async (req, res) => {
+exports.loginClub = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const facilityAuth = await FacilityAuth.findOne({ email }).populate(
-      "facility"
-    );
-    if (!facilityAuth)
-      return res.status(404).json({ error: "Facility not found" });
+    const clubAuth = await ClubAuth.findOne({ email }).populate("club");
+    if (!clubAuth) return res.status(404).json({ error: "Club not found" });
 
-    const isMatch = await bcrypt.compare(password, facilityAuth.password);
+    const isMatch = await bcrypt.compare(password, clubAuth.password);
     if (!isMatch) return res.status(400).json({ error: "Invalid password" });
 
     const token = { id: "foo" };

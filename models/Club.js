@@ -1,9 +1,9 @@
-// models/Facility.js
+// models/Club.js
 const mongoose = require("mongoose");
 const addressSchema = require("./Address");
 
-const facilitySchema = new mongoose.Schema({
-  facilityName: { type: String, required: true },
+const clubSchema = new mongoose.Schema({
+  clubName: { type: String, required: true },
   address: addressSchema,
   email: { type: String, required: true },
   website: { type: String },
@@ -133,4 +133,4 @@ const facilitySchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Facility", facilitySchema);
+module.exports = mongoose.model("Club", clubSchema);

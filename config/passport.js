@@ -1,4 +1,3 @@
-// config/passport.js
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
@@ -13,17 +12,14 @@ passport.use(
     { usernameField: "email" }, // Use "email" instead of "username"
     async (email, password, done) => {
       try {
-        // Look for an existing Auth by email
         let auth = await Auth.findOne({ email });
 
         if (auth) {
-          // Check if password matches
           const isMatch = await bcrypt.compare(password, auth.password);
           if (!isMatch) {
             return done(null, false, { message: "Incorrect password." });
           }
 
-          // Retrieve the associated User
           const user = await User.findById(auth.user);
           return done(null, user);
         } else {
@@ -48,25 +44,27 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails[0].value;
+        const email = profile.emails ? profile.emails[0].value : null;
 
-        // Look for an existing Auth by googleId or by email
+        if (!email) {
+          return done(null, false, {
+            message: "No email found with Google account.",
+          });
+        }
+
         let auth = await Auth.findOne({
           $or: [{ googleId: profile.id }, { email }],
         });
 
         if (auth) {
-          // If the Auth exists but googleId is missing, add it
           if (!auth.googleId) {
             auth.googleId = profile.id;
             await auth.save();
           }
 
-          // Retrieve the associated User
           const user = await User.findById(auth.user);
           return done(null, user);
         } else {
-          // No Auth found, create new Auth and User
           const newUser = new User({
             firstName:
               profile.name.givenName || profile.displayName.split(" ")[0],
@@ -96,7 +94,7 @@ passport.use(
   )
 );
 
-// Facebook Strategy (similar logic can be applied here)
+// Facebook Strategy
 passport.use(
   new FacebookStrategy(
     {
@@ -110,25 +108,27 @@ passport.use(
         const email =
           profile.emails && profile.emails.length > 0
             ? profile.emails[0].value
-            : undefined;
+            : null;
 
-        // Look for an existing Auth by facebookId or by email
+        if (!email) {
+          console.log(
+            "No email provided by Facebook. Creating a user without email."
+          );
+        }
+
         let auth = await Auth.findOne({
           $or: [{ facebookId: profile.id }, { email }],
         });
 
         if (auth) {
-          // If the Auth exists but facebookId is missing, add it
           if (!auth.facebookId) {
             auth.facebookId = profile.id;
             await auth.save();
           }
 
-          // Retrieve the associated User
           const user = await User.findById(auth.user);
           return done(null, user);
         } else {
-          // No Auth found, create new Auth and User
           const newUser = new User({
             firstName:
               profile.name.givenName || profile.displayName.split(" ")[0],
@@ -136,14 +136,14 @@ passport.use(
               profile.name.familyName ||
               profile.displayName.split(" ")[1] ||
               "Unknown",
-            email: email || "",
+            email: email || "", // Fallback if email is missing
           });
 
           const savedUser = await newUser.save();
 
           const newAuth = new Auth({
             facebookId: profile.id,
-            email: email || "",
+            email: email || "", // Fallback if email is missing
             user: savedUser._id,
           });
 
@@ -165,8 +165,12 @@ passport.serializeUser((user, done) => {
 
 // Deserialize user from the session
 passport.deserializeUser(async (id, done) => {
-  const user = await User.findById(id);
-  done(null, user);
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
 });
 
 module.exports = passport;

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const authSchema = new mongoose.Schema(
+const clubAuthSchema = new mongoose.Schema(
   {
     email: {
       type: String,
@@ -19,7 +19,7 @@ const authSchema = new mongoose.Schema(
       required: function () {
         return !this.googleId && !this.facebookId;
       }, // Password is required only if not using OAuth
-      minlength: [6, "Password must be at least 6 characters long"], // Password validation
+      minlength: [6, "Password must be at least 6 characters long"],
     },
     googleId: {
       type: String,
@@ -31,9 +31,9 @@ const authSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values while ensuring uniqueness
     },
-    user: {
+    club: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Club", // Assuming you have a Club model
     },
   },
   {
@@ -42,7 +42,7 @@ const authSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to hash the password before saving, if the password is provided
-authSchema.pre("save", async function (next) {
+clubAuthSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   try {
@@ -55,8 +55,8 @@ authSchema.pre("save", async function (next) {
 });
 
 // Method to compare the password during login
-authSchema.methods.comparePassword = async function (password) {
+clubAuthSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model("Auth", authSchema);
+module.exports = mongoose.model("ClubAuth", clubAuthSchema);
