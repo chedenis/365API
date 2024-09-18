@@ -7,6 +7,7 @@ const clubSchema = new mongoose.Schema({
   address: addressSchema,
   email: { type: String, required: true },
   website: { type: String },
+  logo: { type: String },
   phone: { type: String },
   dropInPlay: { type: Boolean, default: false },
   reservations: { type: Boolean, default: false },
@@ -21,6 +22,7 @@ const clubSchema = new mongoose.Schema({
     enum: ["Court reserve", "PicklePod", "Playbypoint", "Other", "None"],
     default: "None",
   },
+  courtReserveNumber: { type: String, required: false },
   shortDescription: { type: String },
   surfaceType: {
     type: [String],

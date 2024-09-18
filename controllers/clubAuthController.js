@@ -86,8 +86,9 @@ exports.googleAuth = passport.authenticate("club-google", {
 });
 
 exports.googleCallback = (req, res, next) => {
+  console.log("Inside googleCallback"); // This should log
   passport.authenticate("club-google", {
-    successRedirect: "/api/club-auth/success",
+    successRedirect: "http://localhost:3000/auth",
     failureRedirect: "/api/club-auth/failure",
   })(req, res, next);
 };
@@ -97,13 +98,14 @@ exports.facebookAuth = passport.authenticate("club-facebook");
 
 exports.facebookCallback = (req, res, next) => {
   passport.authenticate("club-facebook", {
-    successRedirect: "/api/club-auth/success",
+    successRedirect: "http://localhost:3000/auth",
     failureRedirect: "/api/club-auth/failure",
   })(req, res, next);
 };
 
 // Logout a club
 exports.logoutClub = (req, res) => {
+  console.log("we got here");
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ error: "Error logging out" });

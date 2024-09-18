@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const Auth = require("../models/Auth");
 const User = require("../models/User");
 const getCoordinates = require("../utils/getCoordinates");
+const passport = require("passport");
 
 exports.register = async (req, res) => {
   console.log("trying to register");
@@ -110,4 +111,37 @@ exports.login = async (req, res) => {
     console.error("Error logging in", err);
     res.status(500).json({ error: "Error logging in", details: err.message });
   }
+};
+
+// Google OAuth for club login/register
+exports.googleAuth = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+exports.googleCallback = (req, res, next) => {
+  console.log("Inside googleCallback"); // This should log
+  passport.authenticate("google", {
+    successRedirect: "http://localhost:3000/profile",
+    failureRedirect: "/api/auth/failure",
+  })(req, res, next);
+};
+
+// Facebook OAuth for club login/register
+exports.facebookAuth = passport.authenticate("facebook");
+
+exports.facebookCallback = (req, res, next) => {
+  passport.authenticate("facebook", {
+    successRedirect: "http://localhost:3000/profile",
+    failureRedirect: "/api/auth/failure",
+  })(req, res, next);
+};
+
+// Logout a user
+exports.logout = (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Error logging out" });
+    }
+    res.status(200).json({ message: "Logged out successfully" });
+  });
 };

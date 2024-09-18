@@ -6,6 +6,9 @@ const ClubAuth = require("../models/ClubAuth");
 const PendingClub = require("../models/PendingClub");
 const bcrypt = require("bcryptjs");
 
+const Auth = require("../models/Auth");
+const User = require("../models/User");
+
 // Local Strategy for Club Auth
 passport.use(
   "club-local",
@@ -45,6 +48,8 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails[0].value;
+        console.log("Google login email:", email); // Log email for debugging
+
         let clubAuth = await ClubAuth.findOne({
           $or: [{ googleId: profile.id }, { email }],
         });
@@ -54,7 +59,8 @@ passport.use(
             clubAuth.googleId = profile.id;
             await clubAuth.save();
           }
-          return done(null, clubAuth);
+          console.log("Found clubAuth:", clubAuth); // Log the clubAuth object
+          return done(null, clubAuth); // This should trigger serializeUser
         } else {
           const newPendingClub = new PendingClub({ email });
           const savedPendingClub = await newPendingClub.save();
@@ -66,9 +72,11 @@ passport.use(
           });
 
           await newClubAuth.save();
-          return done(null, newClubAuth);
+          console.log("Created new clubAuth:", newClubAuth); // Log the new clubAuth object
+          return done(null, newClubAuth); // This should trigger serializeUser
         }
       } catch (err) {
+        console.error("Error during Google login:", err); // Log any errors
         return done(err, false);
       }
     }
@@ -119,14 +127,23 @@ passport.use(
 );
 
 // Serialize and Deserialize Club
-passport.serializeUser((clubAuth, done) => {
-  done(null, clubAuth.id);
+passport.serializeUser((entity, done) => {
+  console.log("Serializing:", entity.id);
+  let type = entity instanceof User ? "user" : "club";
+  console.log("Serilize type:", type);
+  done(null, { id: entity.id, type });
 });
 
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (obj, done) => {
+  console.log("checking obj type " + obj.type);
   try {
-    const clubAuth = await ClubAuth.findById(id);
-    done(null, clubAuth);
+    if (obj.type === "user") {
+      const user = await User.findById(obj.id);
+      done(null, user);
+    } else if (obj.type === "club") {
+      const clubAuth = await ClubAuth.findById(obj.id);
+      done(null, clubAuth);
+    }
   } catch (err) {
     done(err);
   }

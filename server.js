@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const passport = require("passport");
 const connectDB = require("./config/db");
+const MongoStore = require("connect-mongo");
 
 console.log("Loading dotenv");
 
@@ -65,15 +66,24 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      ttl: 14 * 24 * 60 * 60, // 14 days expiration
+    }),
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Secure cookie in production
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // SameSite for CSRF protection
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 1000 * 60 * 60 * 48, // 48 hours
     },
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Load general and club-specific passport strategies
+require("./config/passport"); // General user authentication strategies
+require("./config/passportClub"); // Club authentication strategies
 
 connectDB();
 

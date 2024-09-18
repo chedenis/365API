@@ -3,6 +3,7 @@ const passport = require("passport");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const router = express.Router();
+const AuthController = require("../controllers/authController");
 
 // Registration route
 router.post("/register", async (req, res) => {
@@ -41,37 +42,15 @@ router.post("/login", passport.authenticate("local"), (req, res) => {
   res.json({ message: "Logged in successfully", user: req.user });
 });
 
-// Google OAuth
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+// Google OAuth routes
+router.get("/google", AuthController.googleAuth);
+router.get("/google/callback", AuthController.googleCallback);
 
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/" }),
-  (req, res) => {
-    res.redirect("/profile"); // Redirect after successful login
-  }
-);
+// Facebook OAuth routes
+router.get("/facebook", AuthController.facebookAuth);
+router.get("/facebook/callback", AuthController.facebookCallback);
 
-// Facebook OAuth
-router.get(
-  "/facebook",
-  passport.authenticate("facebook", { scope: ["email"] })
-);
-
-router.get(
-  "/facebook/callback",
-  passport.authenticate("facebook", { failureRedirect: "/" }),
-  (req, res) => {
-    res.redirect("/profile"); // Redirect after successful login
-  }
-);
-
-router.get("/logout", (req, res) => {
-  req.logout(); // Logs the user out
-  res.redirect("/"); // Redirect after logout
-});
+// Logout
+router.get("/logout", AuthController.logout);
 
 module.exports = router;

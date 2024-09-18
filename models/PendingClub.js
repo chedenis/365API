@@ -7,6 +7,7 @@ const pendingClubSchema = new mongoose.Schema(
     address: { type: addressSchema, required: false },
     email: { type: String, required: false },
     website: { type: String, required: false },
+    logo: { type: String, required: false },
     phone: { type: String, required: false },
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
@@ -21,6 +22,7 @@ const pendingClubSchema = new mongoose.Schema(
       enum: ["Court reserve", "PicklePod", "Playbypoint", "Other", "None"],
       default: "None",
     },
+    courtReserveNumber: { type: String, required: false },
     shortDescription: { type: String, required: false },
     surfaceType: {
       type: [String],

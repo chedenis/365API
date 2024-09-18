@@ -2,23 +2,30 @@ const PendingClub = require("../models/PendingClub");
 const Club = require("../models/Club");
 const ClubAuth = require("../models/ClubAuth");
 const flattenUpdates = require("../utils/flattenUpdates");
+const getCoordinates = require("../utils/getCoordinates");
 
 // Read Club or PendingClub (no need to know if it's pending or not)
 exports.readClub = async (req, res) => {
   try {
     let club;
 
+    let clubAuth = await ClubAuth.findById(req.user._id);
+
+    console.log("did i find club auth?");
+    console.log(clubAuth);
+
     // Check if the authenticated club has a Club reference or a PendingClub reference
-    if (req.clubAuth.club) {
-      club = await Club.findById(req.clubAuth.club);
-    } else if (req.clubAuth.pendingClub) {
-      club = await PendingClub.findById(req.clubAuth.pendingClub);
+    club = await Club.findOne({ email: clubAuth.email });
+    if (!club) {
+      club = await PendingClub.findOne({ email: clubAuth.email });
     }
 
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
     }
 
+    console.log("returning club");
+    console.log(club);
     res.status(200).json(club);
   } catch (err) {
     console.error("Error fetching club", err);
@@ -75,24 +82,21 @@ exports.createPendingClub = async (req, res) => {
 
 // Update a PendingClub or Club based on the current status
 exports.updateClub = async (req, res) => {
+  console.log("Getting to update club");
+  console.log(req.body);
+
   try {
     const updates = flattenUpdates(req.body);
     let club;
 
-    // Update the current Club or PendingClub associated with the authenticated ClubAuth
-    if (req.clubAuth.club) {
-      club = await Club.findByIdAndUpdate(
-        req.clubAuth.club,
-        { $set: updates },
-        {
-          new: true,
-          runValidators: true,
-          context: "query",
-        }
-      );
-    } else if (req.clubAuth.pendingClub) {
+    // Use email from req.user (assumed to be populated by Passport) to find the club or pending club
+    const email = req.body.email;
+
+    // First, check if there is a PendingClub associated with the email
+    const pendingClub = await PendingClub.findOne({ email });
+    if (pendingClub) {
       club = await PendingClub.findByIdAndUpdate(
-        req.clubAuth.pendingClub,
+        pendingClub._id,
         { $set: updates },
         {
           new: true,
@@ -100,12 +104,33 @@ exports.updateClub = async (req, res) => {
           context: "query",
         }
       );
+      console.log("Updated PendingClub:", club);
+    }
+    // If no PendingClub, check if there is an associated Club
+    else {
+      const existingClub = await Club.findOne({ email });
+      if (existingClub) {
+        club = await Club.findByIdAndUpdate(
+          existingClub._id,
+          { $set: updates },
+          {
+            new: true,
+            runValidators: true,
+            context: "query",
+          }
+        );
+        console.log("Updated Club:", club);
+      }
     }
 
+    // If neither a Club nor a PendingClub is found
     if (!club) {
-      return res.status(404).json({ error: "Club not found" });
+      return res
+        .status(404)
+        .json({ error: "No Club or PendingClub found for the given email" });
     }
 
+    // Successfully updated either the Club or PendingClub
     res.status(200).json({ message: "Club updated successfully", club });
   } catch (err) {
     console.error("Error updating club", err);
@@ -118,16 +143,23 @@ exports.updateClub = async (req, res) => {
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
   try {
-    const pendingClub = await PendingClub.findById(req.clubAuth.pendingClub);
+    const pendingClub = await PendingClub.findById(req.body._id);
     if (!pendingClub) {
       return res.status(404).json({ error: "Pending Club not found" });
     }
+
+    let address = club.address;
+    const fullAddress = `${address.street}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
+    const { latitude, longitude } = await getCoordinates(fullAddress);
 
     // Create a new Club from the PendingClub's data
     const club = new Club({
       ...pendingClub.toObject(),
       _id: undefined, // Let MongoDB create a new _id for the new Club
     });
+
+    club.address.longitude = longitude;
+    club.address.latitude = latitude;
 
     await club.save();
 
@@ -182,14 +214,14 @@ exports.deleteClub = async (req, res) => {
 // List all PendingClubs (for authorized users only)
 exports.listPendingClubs = async (req, res) => {
   try {
-    const authorizedEmails = process.env.AUTHORIZED_EMAILS.split(",");
-    if (!authorizedEmails.includes(req.user.email)) {
-      return res
-        .status(403)
-        .json({ error: "Access denied: Unauthorized email" });
-    }
+    // const authorizedEmails = process.env.AUTHORIZED_EMAILS.split(",");
+    // if (!authorizedEmails.includes(req.user.email)) {
+    //   return res
+    //     .status(403)
+    //     .json({ error: "Access denied: Unauthorized email" });
+    // }
 
-    const pendingClubs = await PendingClub.find();
+    const pendingClubs = await PendingClub.find({ status: "Ready" });
     res.status(200).json(pendingClubs);
   } catch (err) {
     console.error("Error listing pending clubs", err);

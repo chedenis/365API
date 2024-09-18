@@ -17,14 +17,15 @@ router.post("/create", clubController.createPendingClub);
 router.put("/update", clubAuthMiddleware, clubController.updateClub);
 
 // Promote PendingClub to Club (for the authenticated club)
-router.post("/promote", clubAuthMiddleware, clubController.promoteToClub);
+router.post("/promote", clubController.promoteToClub);
 
 // Delete Club or PendingClub (for the authenticated club)
 router.delete("/delete", clubAuthMiddleware, clubController.deleteClub);
 
 // List all PendingClubs (for authorized users only)
-router.get("/pending", userAuthMiddleware, clubController.listPendingClubs);
+//router.get("/pending", userAuthMiddleware, clubController.listPendingClubs);
 
+router.get("/pending", clubController.listPendingClubs);
 // List all Clubs (public)
 router.get("/clubs", clubController.listClubs);
 
