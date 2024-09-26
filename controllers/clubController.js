@@ -1,50 +1,41 @@
-const PendingClub = require("../models/PendingClub");
 const Club = require("../models/Club");
 const ClubAuth = require("../models/ClubAuth");
 const flattenUpdates = require("../utils/flattenUpdates");
 const getCoordinates = require("../utils/getCoordinates");
 
-// Read Club or PendingClub (no need to know if it's pending or not)
-exports.readClub = async (req, res) => {
+// Helper to read clubs from ClubAuth by ID
+const readClubsFromClubAuth = async (id) => {
+  const clubAuth = await ClubAuth.findById(id)
+    .populate({
+      path: "clubs",
+      select: "clubName address amenities", // Only return necessary fields
+    })
+    .select("clubs") // Select only the clubs array, nothing else from ClubAuth
+    .lean()
+    .exec();
+
+  return clubAuth ? clubAuth.clubs : null;
+};
+
+// Read all clubs associated with a ClubAuth
+exports.readClubs = async (req, res) => {
   try {
-    let club;
-
-    let clubAuth = await ClubAuth.findById(req.user._id);
-
-    console.log("did i find club auth?");
-    console.log(clubAuth);
-
-    // Check if the authenticated club has a Club reference or a PendingClub reference
-    club = await Club.findOne({ email: clubAuth.email });
-    if (!club) {
-      club = await PendingClub.findOne({ email: clubAuth.email });
+    const clubs = await readClubsFromClubAuth(req.user.id);
+    if (!clubs) {
+      return res.status(404).json({ message: "ClubAuth not found" });
     }
-
-    if (!club) {
-      return res.status(404).json({ error: "Club not found" });
-    }
-
-    console.log("returning club");
-    console.log(club);
-    res.status(200).json(club);
-  } catch (err) {
-    console.error("Error fetching club", err);
-    res
-      .status(500)
-      .json({ error: "Error fetching club", details: err.message });
+    return res.json(clubs);
+  } catch (error) {
+    console.error("Error reading clubs", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 // Public read function to get a Club or PendingClub by ID
-exports.readClubById = async (req, res) => {
+exports.readClubsById = async (req, res) => {
   try {
     const { id } = req.params;
-    let club = await Club.findById(id);
-
-    if (!club) {
-      // If no Club is found, check if it's a PendingClub
-      club = await PendingClub.findById(id);
-    }
+    const club = await Club.findById(id).lean();
 
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
@@ -59,79 +50,65 @@ exports.readClubById = async (req, res) => {
   }
 };
 
-// Create a PendingClub (no direct Club creation needed)
-exports.createPendingClub = async (req, res) => {
+// Create a Club and link it to ClubAuth
+exports.createClub = async (req, res) => {
   try {
-    const pendingClub = new PendingClub(req.body);
-    await pendingClub.save();
+    const clubDetails = req.body;
+    const email = req.body.email;
 
-    // Link the PendingClub to the authenticated ClubAuth
-    req.clubAuth.pendingClub = pendingClub._id;
-    await req.clubAuth.save();
+    const clubAuth = await ClubAuth.findOne({ email });
+    if (!clubAuth) {
+      return res.status(400).json({ error: "User email not found" });
+    }
 
-    res
-      .status(201)
-      .json({ message: "Pending club created successfully", pendingClub });
+    const existingClub = await Club.findOne({ clubName: clubDetails.clubName });
+    if (existingClub) {
+      return res.status(400).json({ error: "Club name already exists" });
+    }
+
+    const newClub = new Club(clubDetails);
+    await newClub.save();
+
+    // Link the Club to ClubAuth
+    clubAuth.clubs.push(newClub._id);
+    await clubAuth.save();
+
+    res.status(201).json({ message: "Club created successfully", newClub });
   } catch (err) {
-    console.error("Error creating pending club", err);
+    console.error("Error creating club", err);
     res
       .status(500)
-      .json({ error: "Error creating pending club", details: err.message });
+      .json({ error: "Error creating club", details: err.message });
   }
 };
 
-// Update a PendingClub or Club based on the current status
+// Update a Club
 exports.updateClub = async (req, res) => {
-  console.log("Getting to update club");
-  console.log(req.body);
-
   try {
     const updates = flattenUpdates(req.body);
-    let club;
+    const { email } = req.body;
 
-    // Use email from req.user (assumed to be populated by Passport) to find the club or pending club
-    const email = req.body.email;
+    const existingClub = await Club.findOne({ email });
 
-    // First, check if there is a PendingClub associated with the email
-    const pendingClub = await PendingClub.findOne({ email });
-    if (pendingClub) {
-      club = await PendingClub.findByIdAndUpdate(
-        pendingClub._id,
-        { $set: updates },
-        {
-          new: true,
-          runValidators: true,
-          context: "query",
-        }
-      );
-      console.log("Updated PendingClub:", club);
-    }
-    // If no PendingClub, check if there is an associated Club
-    else {
-      const existingClub = await Club.findOne({ email });
-      if (existingClub) {
-        club = await Club.findByIdAndUpdate(
-          existingClub._id,
-          { $set: updates },
-          {
-            new: true,
-            runValidators: true,
-            context: "query",
-          }
-        );
-        console.log("Updated Club:", club);
-      }
-    }
-
-    // If neither a Club nor a PendingClub is found
-    if (!club) {
+    if (!existingClub) {
       return res
         .status(404)
-        .json({ error: "No Club or PendingClub found for the given email" });
+        .json({ error: "No Club found for the given email" });
     }
 
-    // Successfully updated either the Club or PendingClub
-    res.status(200).json({ message: "Club updated successfully", club });
+    const updatedClub = await Club.findByIdAndUpdate(
+      existingClub._id,
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+        context: "query",
+      }
+    );
+
+    res
+      .status(200)
+      .json({ message: "Club updated successfully", club: updatedClub });
   } catch (err) {
     console.error("Error updating club", err);
     res
@@ -143,33 +120,18 @@ exports.updateClub = async (req, res) => {
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
   try {
-    const pendingClub = await PendingClub.findById(req.body._id);
-    if (!pendingClub) {
+    const club = await Club.findById(req.body._id);
+    if (!club) {
       return res.status(404).json({ error: "Pending Club not found" });
     }
 
-    let address = club.address;
-    const fullAddress = `${address.street}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
+    const fullAddress = `${club.address.street}, ${club.address.city}, ${club.address.state} ${club.address.zip}, ${club.address.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
-
-    // Create a new Club from the PendingClub's data
-    const club = new Club({
-      ...pendingClub.toObject(),
-      _id: undefined, // Let MongoDB create a new _id for the new Club
-    });
 
     club.address.longitude = longitude;
     club.address.latitude = latitude;
-
+    club.status = "Complete";
     await club.save();
-
-    // Update ClubAuth to point to the newly created Club and remove reference to PendingClub
-    req.clubAuth.club = club._id;
-    req.clubAuth.pendingClub = undefined;
-    await req.clubAuth.save();
-
-    // Delete the old PendingClub
-    await PendingClub.deleteOne({ _id: pendingClub._id });
 
     res
       .status(200)
@@ -185,43 +147,15 @@ exports.promoteToClub = async (req, res) => {
 
 // Delete PendingClub or Club (depending on the status)
 exports.deleteClub = async (req, res) => {
-  try {
-    let club;
-
-    if (req.clubAuth.club) {
-      club = await Club.findByIdAndDelete(req.clubAuth.club);
-      req.clubAuth.club = undefined;
-    } else if (req.clubAuth.pendingClub) {
-      club = await PendingClub.findByIdAndDelete(req.clubAuth.pendingClub);
-      req.clubAuth.pendingClub = undefined;
-    }
-
-    if (!club) {
-      return res.status(404).json({ error: "Club not found" });
-    }
-
-    await req.clubAuth.save(); // Save ClubAuth after removing the reference
-
-    res.status(200).json({ message: "Club deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting club", err);
-    res
-      .status(500)
-      .json({ error: "Error deleting club", details: err.message });
-  }
+  // TODO: Implement delete logic for club and update clubAuth
+  res.status(501).json({ error: "Delete functionality not implemented" });
 };
 
 // List all PendingClubs (for authorized users only)
 exports.listPendingClubs = async (req, res) => {
   try {
-    // const authorizedEmails = process.env.AUTHORIZED_EMAILS.split(",");
-    // if (!authorizedEmails.includes(req.user.email)) {
-    //   return res
-    //     .status(403)
-    //     .json({ error: "Access denied: Unauthorized email" });
-    // }
-
-    const pendingClubs = await PendingClub.find({ status: "Ready" });
+    // Assuming email authorization is implemented
+    const pendingClubs = await Club.find({ status: "Ready" }).lean();
     res.status(200).json(pendingClubs);
   } catch (err) {
     console.error("Error listing pending clubs", err);
@@ -234,12 +168,25 @@ exports.listPendingClubs = async (req, res) => {
 // List all Clubs (public)
 exports.listClubs = async (req, res) => {
   try {
-    const clubs = await Club.find();
+    const clubs = await Club.find({ status: "Complete" }).lean();
     res.status(200).json(clubs);
   } catch (err) {
     console.error("Error listing clubs", err);
     res
       .status(500)
       .json({ error: "Error listing clubs", details: err.message });
+  }
+};
+
+// List all clubs with status "Not Ready"
+exports.listNotReadyClubs = async (req, res) => {
+  try {
+    const notReadyClubs = await Club.find({ status: "Not Ready" }).lean();
+    res.status(200).json(notReadyClubs);
+  } catch (err) {
+    console.error("Error listing 'Not Ready' clubs", err);
+    res
+      .status(500)
+      .json({ error: "Error listing 'Not Ready' clubs", details: err.message });
   }
 };

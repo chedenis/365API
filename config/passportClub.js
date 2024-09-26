@@ -3,7 +3,6 @@ const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
 const ClubAuth = require("../models/ClubAuth");
-const PendingClub = require("../models/PendingClub");
 const bcrypt = require("bcryptjs");
 
 const Auth = require("../models/Auth");
@@ -62,13 +61,9 @@ passport.use(
           console.log("Found clubAuth:", clubAuth); // Log the clubAuth object
           return done(null, clubAuth); // This should trigger serializeUser
         } else {
-          const newPendingClub = new PendingClub({ email });
-          const savedPendingClub = await newPendingClub.save();
-
           const newClubAuth = new ClubAuth({
             googleId: profile.id,
             email,
-            pendingClub: savedPendingClub._id,
           });
 
           await newClubAuth.save();
@@ -107,13 +102,9 @@ passport.use(
           }
           return done(null, clubAuth);
         } else {
-          const newPendingClub = new PendingClub({ email });
-          const savedPendingClub = await newPendingClub.save();
-
           const newClubAuth = new ClubAuth({
             facebookId: profile.id,
             email,
-            pendingClub: savedPendingClub._id,
           });
 
           await newClubAuth.save();

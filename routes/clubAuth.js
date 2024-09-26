@@ -3,7 +3,7 @@ const router = express.Router();
 const clubAuthController = require("../controllers/clubAuthController");
 
 // Local registration and login
-router.post("/register", clubAuthController.registerClub);
+router.post("/register", clubAuthController.registerClubAuth);
 router.post("/login", clubAuthController.loginClub);
 
 // Google OAuth routes

@@ -31,9 +31,9 @@ const clubAuthSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values while ensuring uniqueness
     },
-    club: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Club", // Assuming you have a Club model
+    clubs: {
+      type: [mongoose.Schema.Types.ObjectId],
+      default: [],
     },
   },
   {

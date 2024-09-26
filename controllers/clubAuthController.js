@@ -1,34 +1,22 @@
 const ClubAuth = require("../models/ClubAuth");
-const PendingClub = require("../models/PendingClub");
+const Club = require("../models/Club");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
 
 // Register a new club (local strategy)
-exports.registerClub = async (req, res, next) => {
-  const { email, password, clubDetails } = req.body;
+exports.registerClubAuth = async (req, res, next) => {
+  const { email, password } = req.body;
 
   try {
-    // Check if a club already exists with this email
-    let existingClub = await ClubAuth.findOne({ email });
-    if (existingClub) {
-      return res
-        .status(400)
-        .json({ error: "Club with this email already exists" });
+    // Check if a club user already exists with this email
+    let newClubAuth = await ClubAuth.findOne({ email });
+    if (newClubAuth) {
+      return res.status(400).json({ error: "Email already exists" });
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create a new ClubAuth entry
-    const newClubAuth = new ClubAuth({ email, password: hashedPassword });
-    await newClubAuth.save();
-
-    // Create a new PendingClub and link it to the ClubAuth
-    const newPendingClub = new PendingClub(clubDetails);
-    await newPendingClub.save();
-
-    // Link the PendingClub to ClubAuth
-    newClubAuth.pendingClub = newPendingClub._id;
+    newClubAuth = new ClubAuth({ email, password: hashedPassword });
     await newClubAuth.save();
 
     // Automatically log the club in after registration using Passport
@@ -44,7 +32,6 @@ exports.registerClub = async (req, res, next) => {
         clubAuth: {
           id: newClubAuth._id,
           email: newClubAuth.email,
-          pendingClub: newClubAuth.pendingClub,
         },
       });
     });
@@ -72,8 +59,7 @@ exports.loginClub = (req, res, next) => {
         clubAuth: {
           id: clubAuth._id,
           email: clubAuth.email,
-          pendingClub: clubAuth.pendingClub,
-          club: clubAuth.club,
+          clubs: clubAuth.clubs,
         },
       });
     });
