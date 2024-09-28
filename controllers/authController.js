@@ -19,29 +19,17 @@ exports.register = async (req, res) => {
 
     if (!username || !password || !firstName || !lastName || !address) {
       console.log("all fields are required");
-      console.log(
-        username,
-        password,
-        firstName,
-        lastName,
-        address,
-        membershipStatus,
-        skillLevel
-      );
       return res.status(400).json({ error: "All fields are required" });
     }
-    console.log("111");
 
     // Email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(username)) {
-      console.log("1");
       return res.status(400).json({ error: "Invalid email address" });
     }
 
     const existingAuth = await Auth.findOne({ username });
     if (existingAuth) {
-      console.log("2");
       return res.status(400).json({ error: "User already exists" });
     }
 
@@ -50,8 +38,11 @@ exports.register = async (req, res) => {
     const fullAddress = `${address.street}, ${address.city}, ${address.state} ${address.zip}, ${address.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
-    address.latitude = latitude;
-    address.longitude = longitude;
+    // Update the address with the GeoJSON location format
+    address.location = {
+      type: "Point",
+      coordinates: [longitude, latitude], // GeoJSON format: [longitude, latitude]
+    };
 
     const newUser = new User({
       firstName,

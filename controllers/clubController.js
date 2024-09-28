@@ -122,14 +122,18 @@ exports.promoteToClub = async (req, res) => {
   try {
     const club = await Club.findById(req.body._id);
     if (!club) {
-      return res.status(404).json({ error: "Pending Club not found" });
+      return res.status(404).json({ error: "Club not found" });
     }
 
     const fullAddress = `${club.address.street}, ${club.address.city}, ${club.address.state} ${club.address.zip}, ${club.address.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
-    club.address.longitude = longitude;
-    club.address.latitude = latitude;
+    // Update the location field with GeoJSON coordinates (longitude, latitude)
+    club.address.location = {
+      type: "Point",
+      coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+    };
+
     club.status = "Complete";
     await club.save();
 

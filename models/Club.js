@@ -5,8 +5,24 @@ const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
     address: { type: addressSchema, required: false },
-    email: { type: String, required: false },
-    website: { type: String, required: false },
+    email: {
+      type: String,
+      required: true, // Email is required
+      validate: {
+        validator: function (v) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); // Simple email regex validation
+        },
+        message: (props) => `${props.value} is not a valid email address!`,
+      },
+    },
+    website: {
+      type: String,
+      required: false,
+      match: [
+        /^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}$/,
+        "Please fill a valid URL",
+      ], // URL validation
+    },
     logo: { type: String, required: false },
     phone: { type: String, required: false },
     dropInPlay: { type: Boolean, default: false },
@@ -170,5 +186,9 @@ const clubSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
+
+// Index clubName and status for faster queries
+clubSchema.index({ clubName: 1 });
+clubSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Club", clubSchema);
