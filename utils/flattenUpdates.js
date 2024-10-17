@@ -8,8 +8,14 @@ const flattenUpdates = (updates) => {
       updates[key] !== null &&
       !Array.isArray(updates[key])
     ) {
-      for (const subKey in updates[key]) {
-        flattened[`${key}.${subKey}`] = updates[key][subKey];
+      // If key is operatingHours, keep it nested
+      if (key === "operatingHours") {
+        flattened[key] = updates[key]; // Do not flatten operatingHours
+      } else {
+        // Flatten other objects (like address) normally
+        for (const subKey in updates[key]) {
+          flattened[`${key}.${subKey}`] = updates[key][subKey];
+        }
       }
     } else {
       flattened[key] = updates[key];

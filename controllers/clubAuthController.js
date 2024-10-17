@@ -74,7 +74,7 @@ exports.googleAuth = passport.authenticate("club-google", {
 exports.googleCallback = (req, res, next) => {
   console.log("Inside googleCallback"); // This should log
   passport.authenticate("club-google", {
-    successRedirect: "http://localhost:3000/auth",
+    successRedirect: process.env.CLUB_SUCCESS_REDIRECT,
     failureRedirect: "/api/club-auth/failure",
   })(req, res, next);
 };
@@ -84,7 +84,7 @@ exports.facebookAuth = passport.authenticate("club-facebook");
 
 exports.facebookCallback = (req, res, next) => {
   passport.authenticate("club-facebook", {
-    successRedirect: "http://localhost:3000/auth",
+    successRedirect: process.env.CLUB_SUCCESS_REDIRECT,
     failureRedirect: "/api/club-auth/failure",
   })(req, res, next);
 };

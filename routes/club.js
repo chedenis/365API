@@ -8,7 +8,7 @@ const clubAuthMiddleware = require("../middleware/clubAuth");
 router.get("/read", clubAuthMiddleware, clubController.readClubs);
 
 // Public route to read a club or pending club by ID
-router.get("/read/:id", clubController.readClubsById);
+router.get("/read/:id", clubController.readClubById);
 
 // Create a new PendingClub (public, no authentication needed)
 router.post("/create", clubController.createClub);
@@ -17,7 +17,7 @@ router.post("/create", clubController.createClub);
 router.put("/update", clubAuthMiddleware, clubController.updateClub);
 
 // Promote PendingClub to Club (for the authenticated club)
-router.post("/promote", clubController.promoteToClub);
+router.put("/promote/:id", clubController.promoteToClub);
 
 // Delete Club or PendingClub (for the authenticated club)
 router.delete("/delete", clubAuthMiddleware, clubController.deleteClub);

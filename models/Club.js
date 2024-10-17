@@ -4,7 +4,24 @@ const addressSchema = require("./Address");
 const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
+    progress: {
+      type: [String],
+      enum: [
+        "amenities",
+        "clubDetails",
+        "operatingHours",
+        "dropInHours",
+        "memberBenefits",
+      ],
+      default: [],
+    },
+
     address: { type: addressSchema, required: false },
+    mailingAddress: { type: addressSchema, required: false },
+    memberPerk: {
+      type: String,
+      enum: ["50% off", "Treat like member"], // Matches the string values used in the frontend
+    },
     email: {
       type: String,
       required: true, // Email is required
@@ -27,15 +44,16 @@ const clubSchema = new mongoose.Schema(
     phone: { type: String, required: false },
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
+    reservationLink: { type: String, required: false },
     outdoorPlay: { type: Boolean, default: false },
     indoorPlay: { type: Boolean, default: false },
     clayCourts: { type: Boolean, default: false },
     grassCourts: { type: Boolean, default: false },
     asphaltConcreteCourts: { type: Boolean, default: false },
     numberOfCourts: { type: Number, default: 0 },
-    reservationType: {
+    reservationSystem: {
       type: String,
-      enum: ["Court reserve", "PicklePod", "Playbypoint", "Other", "None"],
+      enum: ["Court reserve", "Picklepod", "Playbypoint", "Other", "None"],
       default: "None",
     },
     courtReserveNumber: { type: String, required: false },
@@ -72,7 +90,7 @@ const clubSchema = new mongoose.Schema(
       enum: ["Tournaments", "Clinics", "Round Robin", "Lessons"],
       default: [],
     },
-    pickleballAmenities: {
+    proShopAmenities: {
       type: [String],
       enum: [
         "Clothing",
@@ -84,7 +102,7 @@ const clubSchema = new mongoose.Schema(
       ],
       default: [],
     },
-    proShopDiscount: { type: String, default: "0%" },
+    proshopDiscount: { type: String, default: "0%" },
     ageRestrictions: { type: Number, required: false },
     otherActivities: {
       type: [String],
@@ -136,7 +154,7 @@ const clubSchema = new mongoose.Schema(
       default: [],
     },
     parkingType: {
-      type: String,
+      type: [String],
       enum: [
         "No designated parking",
         "On-site",
@@ -146,34 +164,64 @@ const clubSchema = new mongoose.Schema(
       ],
       required: false,
     },
+    dropInHours: {
+      Monday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Tuesday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Wednesday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Thursday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Friday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Saturday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+      Sunday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
+      },
+    },
     operatingHours: {
-      monday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Monday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      tuesday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Tuesday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      wednesday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Wednesday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      thursday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Thursday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      friday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Friday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      saturday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Saturday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
-      sunday: {
-        open: { type: String, required: false },
-        close: { type: String, required: false },
+      Sunday: {
+        startTime: { type: String, required: false },
+        endTime: { type: String, required: false },
       },
     },
     status: {

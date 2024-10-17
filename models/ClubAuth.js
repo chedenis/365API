@@ -31,10 +31,13 @@ const clubAuthSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // Allows null/undefined values while ensuring uniqueness
     },
-    clubs: {
-      type: [mongoose.Schema.Types.ObjectId],
-      default: [],
-    },
+    clubs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Club", // Reference to Club model
+        default: [], // Default to an empty array
+      },
+    ],
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

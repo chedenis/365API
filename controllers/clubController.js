@@ -4,35 +4,47 @@ const flattenUpdates = require("../utils/flattenUpdates");
 const getCoordinates = require("../utils/getCoordinates");
 
 // Helper to read clubs from ClubAuth by ID
-const readClubsFromClubAuth = async (id) => {
-  const clubAuth = await ClubAuth.findById(id)
+const readClubsFromClubAuth = async (email) => {
+  const clubAuth = await ClubAuth.findOne({ email: email })
     .populate({
       path: "clubs",
-      select: "clubName address amenities", // Only return necessary fields
+      model: "Club", // Ensure you're populating the correct model
     })
     .select("clubs") // Select only the clubs array, nothing else from ClubAuth
     .lean()
     .exec();
 
-  return clubAuth ? clubAuth.clubs : null;
+  if (clubAuth) {
+    console.log(`clubauth is ${JSON.stringify(clubAuth)}`);
+    return clubAuth.clubs || [];
+  }
+
+  return null;
 };
 
 // Read all clubs associated with a ClubAuth
 exports.readClubs = async (req, res) => {
   try {
-    const clubs = await readClubsFromClubAuth(req.user.id);
+    console.log(`Checking user: ${req.user}`);
+    console.log(`Reading clubs for user ID: ${req.user.id}`); // Log user ID before function call
+
+    const clubs = await readClubsFromClubAuth(req.user.email);
+
     if (!clubs) {
+      console.warn(`No clubs found for user ID: ${req.user.email}`); // Log if no clubs are found
       return res.status(404).json({ message: "ClubAuth not found" });
     }
+
+    console.log(`Successfully retrieved clubs for user ID: ${req.user.id}`); // Log success
     return res.json(clubs);
   } catch (error) {
-    console.error("Error reading clubs", error);
+    console.error(`Error reading clubs for user ID: ${req.user.id}`, error); // Detailed error log with user ID
     return res.status(500).json({ message: "Server error" });
   }
 };
 
 // Public read function to get a Club or PendingClub by ID
-exports.readClubsById = async (req, res) => {
+exports.readClubById = async (req, res) => {
   try {
     const { id } = req.params;
     const club = await Club.findById(id).lean();
@@ -56,26 +68,37 @@ exports.createClub = async (req, res) => {
     const clubDetails = req.body;
     const email = req.body.email;
 
+    console.log("Received request to create club with details:", clubDetails);
+
+    // Check if ClubAuth exists for the provided email
     const clubAuth = await ClubAuth.findOne({ email });
     if (!clubAuth) {
+      console.warn(`ClubAuth not found for email: ${email}`);
       return res.status(400).json({ error: "User email not found" });
     }
+    console.log("ClubAuth found for email:", email);
 
+    // Check if the club with the given name already exists
     const existingClub = await Club.findOne({ clubName: clubDetails.clubName });
     if (existingClub) {
+      console.warn(`Club with name ${clubDetails.clubName} already exists.`);
       return res.status(400).json({ error: "Club name already exists" });
     }
+    console.log("No existing club found with name:", clubDetails.clubName);
 
+    // Create and save the new club
     const newClub = new Club(clubDetails);
     await newClub.save();
+    console.log("New club created successfully:", newClub);
 
     // Link the Club to ClubAuth
     clubAuth.clubs.push(newClub._id);
     await clubAuth.save();
+    console.log("Club linked to ClubAuth:", newClub._id);
 
     res.status(201).json({ message: "Club created successfully", newClub });
   } catch (err) {
-    console.error("Error creating club", err);
+    console.error("Error creating club:", err);
     res
       .status(500)
       .json({ error: "Error creating club", details: err.message });
@@ -86,14 +109,13 @@ exports.createClub = async (req, res) => {
 exports.updateClub = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
-    const { email } = req.body;
+    const { _id } = req.body;
+    console.log("flattenedUpdates " + JSON.stringify(updates));
 
-    const existingClub = await Club.findOne({ email });
+    const existingClub = await Club.findOne({ _id });
 
     if (!existingClub) {
-      return res
-        .status(404)
-        .json({ error: "No Club found for the given email" });
+      return res.status(404).json({ error: "No Club found for the given _id" });
     }
 
     const updatedClub = await Club.findByIdAndUpdate(
@@ -120,7 +142,8 @@ exports.updateClub = async (req, res) => {
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
   try {
-    const club = await Club.findById(req.body._id);
+    const { id } = req.params; // Get the club ID from the URL parameters
+    const club = await Club.findById(id); // Find the club by its ID
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
     }
