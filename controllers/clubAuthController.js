@@ -89,13 +89,18 @@ exports.facebookCallback = (req, res, next) => {
   })(req, res, next);
 };
 
-// Logout a club
+// Function to log out a club
 exports.logoutClub = (req, res) => {
-  console.log("we got here");
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ error: "Error logging out" });
     }
-    res.status(200).json({ message: "Logged out successfully" });
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Error ending session" });
+      }
+      res.clearCookie("connect.sid"); // Clear session cookie
+      res.status(200).json({ message: "Logged out successfully" });
+    });
   });
 };

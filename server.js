@@ -10,10 +10,8 @@ const passport = require("passport");
 const connectDB = require("./config/db");
 const MongoStore = require("connect-mongo");
 
-console.log("Loading dotenv");
-
+// Load environment variables
 dotenv.config();
-
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 const envFile =
   process.env.NODE_ENV === "production"
@@ -21,23 +19,16 @@ const envFile =
     : ".env.development";
 dotenv.config({ path: envFile });
 
+console.log(`Environment: ${process.env.NODE_ENV}`);
+console.log("Initializing database connection...");
+connectDB();
+
 const app = express();
 
-// Use helmet to secure the app by setting various HTTP headers
+// Apply security headers
 app.use(helmet());
 
-// Set up rate limiter for sensitive routes: maximum of 100 requests per 15 minutes
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again after 15 minutes",
-});
-
-// Apply rate limiter only to sensitive routes like authentication
-app.use("/api/auth", limiter);
-app.use("/api/club-auth", limiter);
-
-// CORS configuration with logging
+// CORS configuration
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? process.env.PROD_CORS_ORIGINS.split(",")
@@ -46,21 +37,42 @@ const allowedOrigins =
 if (!allowedOrigins) {
   console.error("CORS origins are not defined");
 } else {
-  console.log("CORS origins are set to:", allowedOrigins);
+  console.log("CORS allowed origins:", allowedOrigins);
 }
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.error(`Blocked by CORS: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
 );
 
+// Apply rate limiter to sensitive routes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
+app.use("/api/auth", limiter);
+app.use("/api/club-auth", limiter);
+
+// Stripe webhook route with express.raw() for Stripe signature verification
+const stripeRoutes = require("./routes/stripe");
+app.use("/api/stripe", stripeRoutes);
+
+// Apply JSON and URL-encoded body parsing for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize Passport and session handling
+// Initialize session handling with MongoDB store
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -78,14 +90,19 @@ app.use(
   })
 );
 
+// Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Load general and club-specific passport strategies
+// Load Passport strategies
 require("./config/passport"); // General user authentication strategies
 require("./config/passportClub"); // Club authentication strategies
 
-connectDB();
+// General request logging middleware
+app.use((req, res, next) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  next();
+});
 
 // Define routes
 const authRoutes = require("./routes/auth");
@@ -107,9 +124,8 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `Server is running on port ${PORT} in ${process.env.NODE_ENV} mode`
-  );
+  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });

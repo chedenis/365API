@@ -8,9 +8,9 @@ const flattenUpdates = (updates) => {
       updates[key] !== null &&
       !Array.isArray(updates[key])
     ) {
-      // If key is operatingHours, keep it nested
-      if (key === "operatingHours") {
-        flattened[key] = updates[key]; // Do not flatten operatingHours
+      // Handle dropInHours and operatingHours (multi-time ranges)
+      if (key === "operatingHours" || key === "dropInHours") {
+        flattened[key] = updates[key]; // Do not flatten time groups, keep them nested
       } else {
         // Flatten other objects (like address) normally
         for (const subKey in updates[key]) {
@@ -22,7 +22,7 @@ const flattenUpdates = (updates) => {
     }
   }
 
-  // Only proceed with the update if the address contains actual data
+  // Keep your original logic for address
   if (flattened.address && Object.keys(flattened.address).length === 0) {
     delete flattened.address; // Remove empty address if present
   }

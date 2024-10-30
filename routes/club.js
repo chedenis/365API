@@ -5,13 +5,13 @@ const userAuthMiddleware = require("../middleware/auth");
 const clubAuthMiddleware = require("../middleware/clubAuth");
 
 // Read Club or PendingClub (for the authenticated club)
-router.get("/read", clubAuthMiddleware, clubController.readClubs);
+router.get("/read", clubController.readClubs);
 
 // Public route to read a club or pending club by ID
 router.get("/read/:id", clubController.readClubById);
 
 // Create a new PendingClub (public, no authentication needed)
-router.post("/create", clubController.createClub);
+router.post("/create", clubAuthMiddleware, clubController.createClub);
 
 // Update Club or PendingClub (for the authenticated club)
 router.put("/update", clubAuthMiddleware, clubController.updateClub);
@@ -30,5 +30,23 @@ router.get("/pending", clubController.listPendingClubs);
 router.get("/clubs", clubController.listClubs);
 
 router.get("/notready", clubController.listNotReadyClubs);
+
+// router.post(
+//   "/generate-upload-url",
+//   clubAuthMiddleware,
+//   clubController.generatePresignedUrl
+// );
+
+router.post(
+  "/generate-upload-url",
+  clubAuthMiddleware,
+  clubController.generatePresignedUrl
+);
+
+router.get(
+  "/generate-get-url",
+  clubAuthMiddleware,
+  clubController.generateGetPresignedUrl
+);
 
 module.exports = router;

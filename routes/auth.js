@@ -49,6 +49,7 @@ router.get("/google/callback", AuthController.googleCallback);
 // Facebook OAuth routes
 router.get("/facebook", AuthController.facebookAuth);
 router.get("/facebook/callback", AuthController.facebookCallback);
+router.get("/session", AuthController.session);
 
 // Logout
 router.get("/logout", AuthController.logout);

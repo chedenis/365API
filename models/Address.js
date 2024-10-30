@@ -12,11 +12,9 @@ const addressSchema = new mongoose.Schema(
       type: {
         type: String,
         enum: ["Point"], // GeoJSON Point type
-        required: true,
       },
       coordinates: {
         type: [Number], // Array of coordinates: [longitude, latitude]
-        required: true,
       },
     },
   },

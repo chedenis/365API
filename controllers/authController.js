@@ -3,6 +3,55 @@ const Auth = require("../models/Auth");
 const User = require("../models/User");
 const getCoordinates = require("../utils/getCoordinates");
 const passport = require("passport");
+const ClubAuth = require("../models/ClubAuth");
+const Stripe = require("stripe");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // Set your Stripe secret key here
+
+exports.createCheckoutSession = async (req, res) => {
+  try {
+    // Retrieve the authenticated user's ID (assuming user ID is available in req.user)
+    const userId = req.user._id;
+
+    // Create a Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Membership",
+              description: "Premium club membership",
+            },
+            unit_amount: 5000, // Amount in cents (e.g., $50.00)
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${process.env.CLIENT_BASE_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_BASE_URL}/profile`,
+      metadata: {
+        userId: userId.toString(), // Pass the user ID to Stripe metadata for later use in webhook
+      },
+    });
+
+    res.status(200).json({ url: session.url });
+  } catch (error) {
+    console.error("Error creating checkout session:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
+  }
+};
+
+exports.session = async (req, res) => {
+  if (req.user) {
+    const userType = req.user instanceof ClubAuth ? "club" : "user";
+    return res.status(200).json({ userType });
+  } else {
+    // No user is logged in
+    return res.status(200).json({ userType: null });
+  }
+};
 
 exports.register = async (req, res) => {
   console.log("trying to register");
@@ -104,25 +153,51 @@ exports.login = async (req, res) => {
   }
 };
 
-// Google OAuth for club login/register
-exports.googleAuth = passport.authenticate("google", {
-  scope: ["profile", "email"],
-});
+// Google OAuth for user login/register
+exports.googleAuth = (req, res, next) => {
+  // Determine platform and set it as a query parameter
+  const platform = req.query.platform === "app" ? "app" : "web";
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    state: platform, // Pass platform as state parameter
+  })(req, res, next);
+};
 
 exports.googleCallback = (req, res, next) => {
-  console.log("Inside googleCallback"); // This should log
+  // Retrieve platform from state
+  const platform = req.query.state || "web"; // Default to web if not specified
+
+  const redirectUrl =
+    platform === "app"
+      ? process.env.REACT_NATIVE_SUCCESS_REDIRECT
+      : process.env.WEB_SUCCESS_REDIRECT;
+
   passport.authenticate("google", {
-    successRedirect: "http://localhost:3000/profile",
+    successRedirect: redirectUrl,
     failureRedirect: "/api/auth/failure",
   })(req, res, next);
 };
 
-// Facebook OAuth for club login/register
-exports.facebookAuth = passport.authenticate("facebook");
+// Facebook OAuth for user login/register
+exports.facebookAuth = (req, res, next) => {
+  // Determine platform and set it as a query parameter
+  const platform = req.query.platform === "app" ? "app" : "web";
+  passport.authenticate("facebook", {
+    state: platform, // Pass platform as state parameter
+  })(req, res, next);
+};
 
 exports.facebookCallback = (req, res, next) => {
+  // Retrieve platform from state
+  const platform = req.query.state || "web";
+
+  const redirectUrl =
+    platform === "app"
+      ? process.env.REACT_NATIVE_SUCCESS_REDIRECT
+      : process.env.WEB_SUCCESS_REDIRECT;
+
   passport.authenticate("facebook", {
-    successRedirect: "http://localhost:3000/profile",
+    successRedirect: redirectUrl,
     failureRedirect: "/api/auth/failure",
   })(req, res, next);
 };

@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 const addressSchema = require("./Address");
 
+const timeRangeSchema = new mongoose.Schema({
+  startTime: { type: String, required: true },
+  endTime: { type: String, required: true },
+});
+
 const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
@@ -12,6 +17,7 @@ const clubSchema = new mongoose.Schema(
         "operatingHours",
         "dropInHours",
         "memberBenefits",
+        "images",
       ],
       default: [],
     },
@@ -40,7 +46,9 @@ const clubSchema = new mongoose.Schema(
         "Please fill a valid URL",
       ], // URL validation
     },
-    logo: { type: String, required: false },
+    profileImage: { type: String, required: false }, // S3 URL for profile image
+    featuredImage: { type: String, required: false }, // S3 URL for featured image
+    galleryImages: [{ type: String }], // Array of S3 URLs for gallery images
     phone: { type: String, required: false },
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
@@ -53,7 +61,7 @@ const clubSchema = new mongoose.Schema(
     numberOfCourts: { type: Number, default: 0 },
     reservationSystem: {
       type: String,
-      enum: ["Court reserve", "Picklepod", "Playbypoint", "Other", "None"],
+      enum: ["Court Reserve", "Picklepod", "Playbypoint", "Other", "None"],
       default: "None",
     },
     courtReserveNumber: { type: String, required: false },
@@ -165,64 +173,22 @@ const clubSchema = new mongoose.Schema(
       required: false,
     },
     dropInHours: {
-      Monday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Tuesday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Wednesday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Thursday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Friday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Saturday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Sunday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
+      Monday: [timeRangeSchema],
+      Tuesday: [timeRangeSchema],
+      Wednesday: [timeRangeSchema],
+      Thursday: [timeRangeSchema],
+      Friday: [timeRangeSchema],
+      Saturday: [timeRangeSchema],
+      Sunday: [timeRangeSchema],
     },
     operatingHours: {
-      Monday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Tuesday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Wednesday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Thursday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Friday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Saturday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
-      Sunday: {
-        startTime: { type: String, required: false },
-        endTime: { type: String, required: false },
-      },
+      Monday: [timeRangeSchema],
+      Tuesday: [timeRangeSchema],
+      Wednesday: [timeRangeSchema],
+      Thursday: [timeRangeSchema],
+      Friday: [timeRangeSchema],
+      Saturday: [timeRangeSchema],
+      Sunday: [timeRangeSchema],
     },
     status: {
       type: String,

@@ -3,6 +3,71 @@ const ClubAuth = require("../models/ClubAuth");
 const flattenUpdates = require("../utils/flattenUpdates");
 const getCoordinates = require("../utils/getCoordinates");
 
+// Import required AWS SDK v3 clients and helpers
+const {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+// Configure AWS S3 client using v3 SDK
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+const bucketName = process.env.S3_BUCKET_NAME;
+
+// Generate a Pre-Signed URL for AWS S3 using v3 SDK
+exports.generatePresignedUrl = async (req, res) => {
+  const { fileName, fileType } = req.body; // Expecting fileName and fileType in the request
+
+  const params = {
+    Bucket: bucketName, // S3 bucket name from environment
+    Key: fileName, // The name of the file to be uploaded
+    ContentType: fileType, // File type (e.g., image/jpeg, image/png, etc.)
+  };
+
+  try {
+    // Create the command for putting the object
+    const command = new PutObjectCommand(params);
+
+    // Generate the pre-signed URL with a 60-second expiration
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+
+    // Send the pre-signed URL in the response
+    res.json({ url });
+  } catch (err) {
+    console.error("Error generating pre-signed URL", err);
+    res.status(500).json({ error: "Error generating pre-signed URL" });
+  }
+};
+
+exports.generateGetPresignedUrl = async (req, res) => {
+  const { fileUrl } = req.query;
+
+  const fileKey = fileUrl.replace(
+    `https://${bucketName}.s3.us-west-1.amazonaws.com/`,
+    ""
+  );
+  const params = {
+    Bucket: bucketName,
+    Key: fileKey,
+  };
+
+  try {
+    const command = new GetObjectCommand(params);
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    res.json({ url });
+  } catch (err) {
+    console.error("Error generating pre-signed GET URL", err);
+    res.status(500).json({ error: "Error generating pre-signed GET URL" });
+  }
+};
+
 // Helper to read clubs from ClubAuth by ID
 const readClubsFromClubAuth = async (email) => {
   const clubAuth = await ClubAuth.findOne({ email: email })
@@ -66,8 +131,9 @@ exports.readClubById = async (req, res) => {
 exports.createClub = async (req, res) => {
   try {
     const clubDetails = req.body;
-    const email = req.body.email;
+    const email = req.user.email;
 
+    console.log("Here is the user " + req.user);
     console.log("Received request to create club with details:", clubDetails);
 
     // Check if ClubAuth exists for the provided email
