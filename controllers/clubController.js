@@ -217,6 +217,9 @@ exports.promoteToClub = async (req, res) => {
     const fullAddress = `${club.address.street}, ${club.address.city}, ${club.address.state} ${club.address.zip}, ${club.address.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
+    if (club.mailingAddress.street !== club.mailingAddress.street) {
+    }
+
     // Update the location field with GeoJSON coordinates (longitude, latitude)
     club.address.location = {
       type: "Point",
@@ -262,6 +265,32 @@ exports.listPendingClubs = async (req, res) => {
 exports.listClubs = async (req, res) => {
   try {
     const clubs = await Club.find({ status: "Complete" }).lean();
+    res.status(200).json(clubs);
+  } catch (err) {
+    console.error("Error listing clubs", err);
+    res
+      .status(500)
+      .json({ error: "Error listing clubs", details: err.message });
+  }
+};
+
+exports.filteredList = async (req, res) => {
+  try {
+    const { courtTypes, surfaceType, netType } = req.body;
+
+    const filters = { status: "Complete" };
+
+    if (courtTypes && courtTypes.length) {
+      filters.courtTypes = { $in: courtTypes };
+    }
+    if (surfaceType && surfaceType.length) {
+      filters.surfaceType = { $in: surfaceType };
+    }
+    if (netType && netType.length) {
+      filters.netType = { $in: netType };
+    }
+
+    const clubs = await Club.find(filters).lean();
     res.status(200).json(clubs);
   } catch (err) {
     console.error("Error listing clubs", err);

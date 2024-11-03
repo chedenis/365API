@@ -29,6 +29,8 @@ router.get("/pending", clubController.listPendingClubs);
 // List all Clubs (public)
 router.get("/clubs", clubController.listClubs);
 
+router.post("/filteredList", clubController.filteredList);
+
 router.get("/notready", clubController.listNotReadyClubs);
 
 // router.post(
