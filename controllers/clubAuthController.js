@@ -1,5 +1,4 @@
-const ClubAuth = require("../models/ClubAuth");
-const Club = require("../models/Club");
+const { ClubAuth } = require("../models");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
 

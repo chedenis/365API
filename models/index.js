@@ -44,5 +44,7 @@ const ClubAuth =
 const Auth =
   mongoose.models[AuthModelName] || mongoose.model(AuthModelName, AuthSchema);
 
+console.log("Registered models:", mongoose.modelNames());
+
 // Export models for use in other files
 module.exports = { Club, User, ClubAuth, Auth };

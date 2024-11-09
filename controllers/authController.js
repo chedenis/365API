@@ -1,47 +1,7 @@
 const bcrypt = require("bcrypt");
-const Auth = require("../models/Auth");
-const User = require("../models/User");
 const getCoordinates = require("../utils/getCoordinates");
 const passport = require("passport");
-const ClubAuth = require("../models/ClubAuth");
-const Stripe = require("stripe");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // Set your Stripe secret key here
-
-exports.createCheckoutSession = async (req, res) => {
-  try {
-    // Retrieve the authenticated user's ID (assuming user ID is available in req.user)
-    const userId = req.user._id;
-
-    // Create a Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Membership",
-              description: "Premium club membership",
-            },
-            unit_amount: 5000, // Amount in cents (e.g., $50.00)
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${process.env.CLIENT_BASE_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_BASE_URL}/profile`,
-      metadata: {
-        userId: userId.toString(), // Pass the user ID to Stripe metadata for later use in webhook
-      },
-    });
-
-    res.status(200).json({ url: session.url });
-  } catch (error) {
-    console.error("Error creating checkout session:", error);
-    res.status(500).json({ error: "Failed to create checkout session" });
-  }
-};
+const { Auth, User, ClubAuth } = require("../models");
 
 exports.session = async (req, res) => {
   if (req.user) {

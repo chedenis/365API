@@ -1,5 +1,5 @@
-const Club = require("../models/Club");
-const ClubAuth = require("../models/ClubAuth");
+const { Club, ClubAuth } = require("../models");
+
 const flattenUpdates = require("../utils/flattenUpdates");
 const getCoordinates = require("../utils/getCoordinates");
 

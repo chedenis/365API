@@ -2,11 +2,8 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
-const ClubAuth = require("../models/ClubAuth");
 const bcrypt = require("bcryptjs");
-
-const Auth = require("../models/Auth");
-const User = require("../models/User");
+const { User, ClubAuth } = require("../models");
 
 // Local Strategy for Club Auth
 passport.use(

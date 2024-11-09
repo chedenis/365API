@@ -1,5 +1,5 @@
 // controllers/userController.js
-const User = require("../models/User");
+const { User } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
