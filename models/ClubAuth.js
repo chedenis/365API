@@ -1,16 +1,13 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-// Dynamically determine and ensure the Club model is registered
+// Determine the environment-specific model name for Club
 let clubModelName = "Club";
 if (process.env.NODE_ENV === "qa") {
   clubModelName = "ClubQA";
 } else if (process.env.NODE_ENV === "production") {
   clubModelName = "ClubPROD";
 }
-
-// Ensure Club model is registered with dynamic name
-require("./Club");
 
 // Define the ClubAuth schema
 const clubAuthSchema = new mongoose.Schema(
@@ -46,7 +43,7 @@ const clubAuthSchema = new mongoose.Schema(
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: clubModelName, // Use the determined model name as a string
+        ref: clubModelName, // Use the model name string directly
         default: [],
       },
     ],
@@ -74,7 +71,7 @@ clubAuthSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// Determine the model name based on the environment
+// Determine the model name for ClubAuth based on the environment
 let modelName = "ClubAuth";
 if (process.env.NODE_ENV === "qa") {
   modelName = "ClubAuthQA";

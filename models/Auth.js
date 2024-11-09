@@ -1,16 +1,13 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-// Determine the User model name based on the environment
+// Determine the environment-specific model name for User
 let userModelName = "User";
 if (process.env.NODE_ENV === "qa") {
   userModelName = "UserQA";
 } else if (process.env.NODE_ENV === "production") {
   userModelName = "UserPROD";
 }
-
-// Ensure User model is registered with the dynamic name
-require("./User");
 
 const authSchema = new mongoose.Schema(
   {
@@ -44,7 +41,7 @@ const authSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: userModelName, // Use the dynamic model name as a string
+      ref: userModelName, // Use the model name string directly
     },
   },
   {
