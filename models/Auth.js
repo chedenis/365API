@@ -41,7 +41,12 @@ const authSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: userModelName, // Use the model name string directly
+      ref:
+        process.env.NODE_ENV === "production"
+          ? "UserPROD"
+          : process.env.NODE_ENV === "qa"
+          ? "UserQA"
+          : "User", // Explicit environment-based model name, // Use the model name string directly
     },
   },
   {

@@ -43,7 +43,12 @@ const clubAuthSchema = new mongoose.Schema(
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: clubModelName, // Use the model name string directly
+        ref:
+          process.env.NODE_ENV === "production"
+            ? "ClubPROD"
+            : process.env.NODE_ENV === "qa"
+            ? "ClubQA"
+            : "Club", // Explicit environment-based model name, // Use the model name string directly
         default: [],
       },
     ],
