@@ -91,6 +91,10 @@ const readClubsFromClubAuth = async (email) => {
 exports.readClubs = async (req, res) => {
   try {
     console.log(`Checking user: ${req.user}`);
+    if (!req.user) {
+      console.warn("No user information found in the request"); // Log if req.user is missing
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     console.log(`Reading clubs for user ID: ${req.user.id}`); // Log user ID before function call
 
     const clubs = await readClubsFromClubAuth(req.user.email);
