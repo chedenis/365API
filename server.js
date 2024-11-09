@@ -9,6 +9,7 @@ const session = require("express-session");
 const passport = require("passport");
 const connectDB = require("./config/db");
 const MongoStore = require("connect-mongo");
+const { Club, User, ClubAuth, Auth } = require("./models"); // Register models
 
 // Load environment variables
 dotenv.config();
@@ -22,20 +23,9 @@ dotenv.config({ path: envFile });
 console.log(`Environment: ${process.env.NODE_ENV}`);
 console.log("Initializing database connection...");
 
-// Initialize database connection with error handling
-(async () => {
-  try {
-    await connectDB();
-    console.log("Database connected successfully");
-  } catch (error) {
-    console.error("Database connection failed:", error);
-    process.exit(1); // Exit process if the database connection fails
-  }
-})();
-
 const app = express();
 
-// Enable 'trust proxy' to trust the Render proxy
+// Trust Render proxy
 app.set("trust proxy", 1);
 
 // Apply security headers
@@ -142,10 +132,23 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-});
+// Connect to MongoDB and start the server
+(async () => {
+  try {
+    await connectDB();
+    console.log("MongoDB connected successfully");
+
+    // Start the server after successful database connection
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(
+        `Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
+      );
+    });
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    process.exit(1); // Exit process if the database connection fails
+  }
+})();
 
 module.exports = app;
