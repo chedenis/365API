@@ -76,19 +76,26 @@ app.use("/api/stripe", stripeRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize session handling with MongoDB store
+const mongoStore = MongoStore.create({
+  mongoUrl: process.env.MONGO_URI,
+  ttl: 14 * 24 * 60 * 60, // 14 days expiration
+});
+
+// Capture and log any errors from MongoStore
+mongoStore.on("error", function (error) {
+  console.error("MongoStore Error:", error);
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI,
-      ttl: 14 * 24 * 60 * 60, // 14 days expiration
-    }),
+    store: mongoStore,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production", // Secure cookies in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
+      httpOnly: true,
       maxAge: 1000 * 60 * 60 * 48, // 48 hours
     },
   })

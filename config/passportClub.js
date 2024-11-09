@@ -117,11 +117,13 @@ passport.use(
 // Serialize and Deserialize Club
 // passport.js (or passportClub.js if separate)
 passport.serializeUser((entity, done) => {
+  console.log("serializeUser called with entity:", entity);
   const type = entity instanceof User ? "user" : "club";
   done(null, { id: entity.id, type }); // Store both id and type
 });
 
 passport.deserializeUser(async (obj, done) => {
+  console.log("deserializeUser called with object:", obj); // Add this log
   try {
     if (obj.type === "user") {
       const user = await User.findById(obj.id);

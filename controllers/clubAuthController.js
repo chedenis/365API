@@ -2,23 +2,30 @@ const { ClubAuth } = require("../models");
 const passport = require("passport");
 const bcrypt = require("bcryptjs");
 
-// Register a new club (local strategy)
+// Helper function to set the cookie manually
+const setSessionCookie = (req, res) => {
+  console.log("Setting session cookie with session ID:", req.sessionID);
+  res.cookie("connect.sid", req.sessionID, {
+    secure: process.env.NODE_ENV === "production", // Secure cookies in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 48, // 48 hours
+  });
+};
+
 exports.registerClubAuth = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
-    // Check if a club user already exists with this email
     let newClubAuth = await ClubAuth.findOne({ email });
     if (newClubAuth) {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     newClubAuth = new ClubAuth({ email, password: hashedPassword });
     await newClubAuth.save();
 
-    // Automatically log the club in after registration using Passport
     req.login(newClubAuth, (err) => {
       if (err) {
         return res
@@ -26,12 +33,26 @@ exports.registerClubAuth = async (req, res, next) => {
           .json({ error: "Error logging in after registration" });
       }
 
-      return res.status(201).json({
-        message: "Club registered successfully",
-        clubAuth: {
-          id: newClubAuth._id,
-          email: newClubAuth.email,
-        },
+      console.log("req.user after login:", req.user);
+      console.log("req.session after login:", req.session);
+
+      req.session.save((err) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({ error: "Session save failed after registration" });
+        }
+
+        // Manually set the session cookie
+        setSessionCookie(req, res);
+
+        return res.status(201).json({
+          message: "Club registered successfully",
+          clubAuth: {
+            id: newClubAuth._id,
+            email: newClubAuth.email,
+          },
+        });
       });
     });
   } catch (error) {
@@ -40,7 +61,6 @@ exports.registerClubAuth = async (req, res, next) => {
   }
 };
 
-// Login a club (local strategy)
 exports.loginClub = (req, res, next) => {
   passport.authenticate("club-local", (err, clubAuth, info) => {
     if (err) {
@@ -53,18 +73,32 @@ exports.loginClub = (req, res, next) => {
       if (err) {
         return next(err);
       }
-      return res.status(200).json({
-        message: "Club logged in successfully",
-        clubAuth: {
-          id: clubAuth._id,
-          email: clubAuth.email,
-          clubs: clubAuth.clubs,
-        },
+
+      console.log("req.user after login:", req.user);
+      console.log("req.session after login:", req.session);
+
+      req.session.save((err) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({ error: "Session save failed after login" });
+        }
+
+        // Manually set the session cookie
+        setSessionCookie(req, res);
+
+        return res.status(200).json({
+          message: "Club logged in successfully",
+          clubAuth: {
+            id: clubAuth._id,
+            email: clubAuth.email,
+            clubs: clubAuth.clubs,
+          },
+        });
       });
     });
   })(req, res, next);
 };
-
 // Google OAuth for club login/register
 exports.googleAuth = passport.authenticate("club-google", {
   scope: ["profile", "email"],

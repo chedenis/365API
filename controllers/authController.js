@@ -4,8 +4,10 @@ const passport = require("passport");
 const { Auth, User, ClubAuth } = require("../models");
 
 exports.session = async (req, res) => {
+  console.log("checking session", req.session);
   if (req.user) {
     const userType = req.user instanceof ClubAuth ? "club" : "user";
+    console.log("checking user type", userType);
     return res.status(200).json({ userType });
   } else {
     // No user is logged in
