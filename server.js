@@ -21,7 +21,17 @@ dotenv.config({ path: envFile });
 
 console.log(`Environment: ${process.env.NODE_ENV}`);
 console.log("Initializing database connection...");
-connectDB();
+
+// Initialize database connection with error handling
+(async () => {
+  try {
+    await connectDB();
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    process.exit(1); // Exit process if the database connection fails
+  }
+})();
 
 const app = express();
 
@@ -104,6 +114,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Handle HEAD requests without sending a response body
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
+
 // Define routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
@@ -117,7 +132,7 @@ app.use("/api/club-auth", clubAuthRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Global error handler:", err.stack);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
@@ -129,3 +144,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
+
+module.exports = app;
