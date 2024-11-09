@@ -35,6 +35,9 @@ console.log("Initializing database connection...");
 
 const app = express();
 
+// Enable 'trust proxy' to trust the Render proxy
+app.set("trust proxy", 1);
+
 // Apply security headers
 app.use(helmet());
 
