@@ -1,7 +1,18 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const Club = require("./Club");
 
+// Dynamically determine and ensure the Club model is registered
+let clubModelName = "Club";
+if (process.env.NODE_ENV === "qa") {
+  clubModelName = "ClubQA";
+} else if (process.env.NODE_ENV === "production") {
+  clubModelName = "ClubPROD";
+}
+
+// Ensure Club model is registered with dynamic name
+require("./Club");
+
+// Define the ClubAuth schema
 const clubAuthSchema = new mongoose.Schema(
   {
     email: {
@@ -19,29 +30,29 @@ const clubAuthSchema = new mongoose.Schema(
       type: String,
       required: function () {
         return !this.googleId && !this.facebookId;
-      }, // Password is required only if not using OAuth
+      },
       minlength: [6, "Password must be at least 6 characters long"],
     },
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Allows null/undefined values while ensuring uniqueness
+      sparse: true,
     },
     facebookId: {
       type: String,
       unique: true,
-      sparse: true, // Allows null/undefined values while ensuring uniqueness
+      sparse: true,
     },
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: Club.modelName, // Reference to Club model
-        default: [], // Default to an empty array
+        ref: clubModelName, // Use the determined model name as a string
+        default: [],
       },
     ],
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 

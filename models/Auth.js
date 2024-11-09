@@ -1,6 +1,16 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const User = require("./User"); // Dynamically loaded User model
+
+// Determine the User model name based on the environment
+let userModelName = "User";
+if (process.env.NODE_ENV === "qa") {
+  userModelName = "UserQA";
+} else if (process.env.NODE_ENV === "production") {
+  userModelName = "UserPROD";
+}
+
+// Ensure User model is registered with the dynamic name
+require("./User");
 
 const authSchema = new mongoose.Schema(
   {
@@ -34,7 +44,7 @@ const authSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: User.modelName, // Dynamically use the correct model name
+      ref: userModelName, // Use the dynamic model name as a string
     },
   },
   {
@@ -60,7 +70,7 @@ authSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// Determine the model name based on the environment
+// Determine the Auth model name based on the environment
 let modelName = "Auth";
 if (process.env.NODE_ENV === "qa") {
   modelName = "AuthQA";
