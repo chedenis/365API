@@ -9,7 +9,6 @@ const session = require("express-session");
 const passport = require("passport");
 const connectDB = require("./config/db");
 const MongoStore = require("connect-mongo");
-const { Club, User, ClubAuth, Auth } = require("./models"); // Register models
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +21,8 @@ dotenv.config({ path: envFile });
 
 console.log(`Environment: ${process.env.NODE_ENV}`);
 console.log("Initializing database connection...");
+
+const { Club, User, ClubAuth, Auth } = require("./models"); // Register models
 
 const app = express();
 

@@ -70,10 +70,17 @@ exports.generateGetPresignedUrl = async (req, res) => {
 
 // Helper to read clubs from ClubAuth by ID
 const readClubsFromClubAuth = async (email) => {
+  const clubModelName =
+    process.env.NODE_ENV === "production"
+      ? "ClubPROD"
+      : process.env.NODE_ENV === "qa"
+      ? "ClubQA"
+      : "Club";
+
   const clubAuth = await ClubAuth.findOne({ email: email })
     .populate({
       path: "clubs",
-      model: "Club", // Ensure you're populating the correct model
+      model: clubModelName, // Use dynamically determined model name here
     })
     .select("clubs") // Select only the clubs array, nothing else from ClubAuth
     .lean()
