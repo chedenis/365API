@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const Club = require("./Club");
 
 const clubAuthSchema = new mongoose.Schema(
   {
@@ -34,7 +35,7 @@ const clubAuthSchema = new mongoose.Schema(
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Club", // Reference to Club model
+        ref: Club.modelName, // Reference to Club model
         default: [], // Default to an empty array
       },
     ],

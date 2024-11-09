@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const User = require("./User"); // Dynamically loaded User model
 
 const authSchema = new mongoose.Schema(
   {
@@ -24,16 +25,16 @@ const authSchema = new mongoose.Schema(
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Allows null/undefined values while ensuring uniqueness
+      sparse: true,
     },
     facebookId: {
       type: String,
       unique: true,
-      sparse: true, // Allows null/undefined values while ensuring uniqueness
+      sparse: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: User.modelName, // Dynamically use the correct model name
     },
   },
   {
