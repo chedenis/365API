@@ -18,8 +18,8 @@ const authSchema = new mongoose.Schema(
       type: String,
       required: function () {
         return !this.googleId && !this.facebookId;
-      }, // Password is required only if not using OAuth
-      minlength: [6, "Password must be at least 6 characters long"], // Password validation
+      },
+      minlength: [6, "Password must be at least 6 characters long"],
     },
     googleId: {
       type: String,
@@ -37,7 +37,7 @@ const authSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
@@ -59,4 +59,14 @@ authSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model("Auth", authSchema);
+// Determine the model name based on the environment
+let modelName = "Auth";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "AuthQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "AuthPROD";
+}
+
+// Export the model with the dynamic name
+module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, authSchema);

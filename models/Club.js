@@ -21,19 +21,18 @@ const clubSchema = new mongoose.Schema(
       ],
       default: [],
     },
-
     address: { type: addressSchema, required: false },
     mailingAddress: { type: addressSchema, required: false },
     memberPerk: {
       type: String,
-      enum: ["50% off", "Treat like member"], // Matches the string values used in the frontend
+      enum: ["50% off", "Treat like member"],
     },
     email: {
       type: String,
-      required: true, // Email is required
+      required: true,
       validate: {
         validator: function (v) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); // Simple email regex validation
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
         },
         message: (props) => `${props.value} is not a valid email address!`,
       },
@@ -44,11 +43,11 @@ const clubSchema = new mongoose.Schema(
       match: [
         /^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}$/,
         "Please fill a valid URL",
-      ], // URL validation
+      ],
     },
-    profileImage: { type: String, required: false }, // S3 URL for profile image
-    featuredImage: { type: String, required: false }, // S3 URL for featured image
-    galleryImages: [{ type: String }], // Array of S3 URLs for gallery images
+    profileImage: { type: String, required: false },
+    featuredImage: { type: String, required: false },
+    galleryImages: [{ type: String }],
     phone: { type: String, required: false },
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
@@ -197,7 +196,7 @@ const clubSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
@@ -205,4 +204,14 @@ const clubSchema = new mongoose.Schema(
 clubSchema.index({ clubName: 1 });
 clubSchema.index({ status: 1 });
 
-module.exports = mongoose.model("Club", clubSchema);
+// Dynamically set the model name based on the environment
+let modelName = "Club";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "ClubQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "ClubPROD";
+}
+
+// Export the model with the dynamic name
+module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, clubSchema);

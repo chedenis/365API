@@ -17,4 +17,14 @@ const userSchema = new mongoose.Schema({
   skillLevel: skillLevelSchema,
 });
 
-module.exports = mongoose.model("User", userSchema);
+// Determine the model name based on the environment
+let modelName = "User";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "UserQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "UserPROD";
+}
+
+// Export the model with the dynamic name
+module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, userSchema);

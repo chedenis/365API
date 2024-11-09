@@ -62,4 +62,14 @@ clubAuthSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model("ClubAuth", clubAuthSchema);
+// Determine the model name based on the environment
+let modelName = "ClubAuth";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "ClubAuthQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "ClubAuthPROD";
+}
+
+// Export the model with the dynamic name
+module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, clubAuthSchema);
