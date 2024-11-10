@@ -22,9 +22,9 @@ exports.registerClubAuth = async (req, res, next) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    newClubAuth = new ClubAuth({ email, password: hashedPassword });
-    await newClubAuth.save();
+    // Directly create the new club auth without hashing
+    newClubAuth = new ClubAuth({ email, password });
+    await newClubAuth.save(); // Password is hashed in the pre-save hook
 
     req.login(newClubAuth, (err) => {
       if (err) {
@@ -62,13 +62,18 @@ exports.registerClubAuth = async (req, res, next) => {
 };
 
 exports.loginClub = (req, res, next) => {
+  console.log("Incoming login request:", req.body);
+
   passport.authenticate("club-local", (err, clubAuth, info) => {
     if (err) {
+      console.error("Error during authentication:", err);
       return next(err);
     }
     if (!clubAuth) {
+      console.log("Authentication failed:", info.message);
       return res.status(400).json({ error: info.message });
     }
+
     req.login(clubAuth, (err) => {
       if (err) {
         return next(err);
@@ -84,7 +89,6 @@ exports.loginClub = (req, res, next) => {
             .json({ error: "Session save failed after login" });
         }
 
-        // Manually set the session cookie
         setSessionCookie(req, res);
 
         return res.status(200).json({
@@ -99,6 +103,7 @@ exports.loginClub = (req, res, next) => {
     });
   })(req, res, next);
 };
+
 // Google OAuth for club login/register
 exports.googleAuth = passport.authenticate("club-google", {
   scope: ["profile", "email"],
