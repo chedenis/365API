@@ -22,38 +22,18 @@ exports.registerClubAuth = async (req, res, next) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    // Directly create the new club auth without hashing
+    // Directly create and save the new club auth
     newClubAuth = new ClubAuth({ email, password });
     await newClubAuth.save(); // Password is hashed in the pre-save hook
 
-    req.login(newClubAuth, (err) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Error logging in after registration" });
-      }
+    // Skip req.login here if you don't need an automatic login
 
-      console.log("req.user after login:", req.user);
-      console.log("req.session after login:", req.session);
-
-      req.session.save((err) => {
-        if (err) {
-          return res
-            .status(500)
-            .json({ error: "Session save failed after registration" });
-        }
-
-        // Manually set the session cookie
-        setSessionCookie(req, res);
-
-        return res.status(201).json({
-          message: "Club registered successfully",
-          clubAuth: {
-            id: newClubAuth._id,
-            email: newClubAuth.email,
-          },
-        });
-      });
+    return res.status(201).json({
+      message: "Club registered successfully",
+      clubAuth: {
+        id: newClubAuth._id,
+        email: newClubAuth.email,
+      },
     });
   } catch (error) {
     console.error("Error registering club", error);
