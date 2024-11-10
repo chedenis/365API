@@ -26,7 +26,6 @@ const flattenUpdates = (updates) => {
   if (flattened.address && Object.keys(flattened.address).length === 0) {
     delete flattened.address; // Remove empty address if present
   }
-
   return flattened;
 };
 

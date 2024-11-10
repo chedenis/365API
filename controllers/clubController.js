@@ -187,17 +187,32 @@ exports.updateClub = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
     const { _id } = req.body;
-    console.log("flattenedUpdates " + JSON.stringify(updates));
-
     const existingClub = await Club.findOne({ _id });
 
     if (!existingClub) {
       return res.status(404).json({ error: "No Club found for the given _id" });
     }
 
+    // Separate `$set` and `$unset` fields based on "delete" marker
+    const setUpdates = {};
+    const unsetUpdates = {};
+
+    for (const key in updates) {
+      if (updates[key] === "delete") {
+        unsetUpdates[key] = ""; // Use `$unset` for "delete" marked fields
+      } else {
+        setUpdates[key] = updates[key];
+      }
+    }
+
+    const updateData = {
+      ...(Object.keys(setUpdates).length > 0 ? { $set: setUpdates } : {}),
+      ...(Object.keys(unsetUpdates).length > 0 ? { $unset: unsetUpdates } : {}),
+    };
+
     const updatedClub = await Club.findByIdAndUpdate(
       existingClub._id,
-      { $set: updates },
+      updateData,
       {
         new: true,
         runValidators: true,
