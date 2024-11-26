@@ -67,7 +67,7 @@ const clubSchema = new mongoose.Schema(
     shortDescription: { type: String, required: false },
     surfaceType: {
       type: [String],
-      enum: ["Wooden", "Asphalt/Concrete", "Glow in the Dark"],
+      enum: ["Wooden", "Asphalt/Concrete", "Glow in the Dark", "Clay", "Other"],
       default: [],
     },
     netType: {
