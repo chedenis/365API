@@ -15,6 +15,24 @@ exports.session = async (req, res) => {
   }
 };
 
+exports.getLoginStatus = (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    const { email, _id } = req.user;
+    return res.status(200).json({
+      loggedIn: true,
+      auth: {
+        id: _id,
+        email,
+      },
+    });
+  } else {
+    return res.status(200).json({
+      loggedIn: false,
+      clubAuth: null,
+    });
+  }
+};
+
 exports.register = async (req, res) => {
   console.log("trying to register");
   try {

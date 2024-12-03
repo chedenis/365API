@@ -13,6 +13,24 @@ const setSessionCookie = (req, res) => {
   });
 };
 
+exports.getLoginStatus = (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    const { email, _id } = req.user;
+    return res.status(200).json({
+      loggedIn: true,
+      clubAuth: {
+        id: _id,
+        email,
+      },
+    });
+  } else {
+    return res.status(200).json({
+      loggedIn: false,
+      clubAuth: null,
+    });
+  }
+};
+
 exports.registerClubAuth = async (req, res, next) => {
   const { email, password } = req.body;
 

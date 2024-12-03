@@ -52,6 +52,8 @@ router.get("/facebook", AuthController.facebookAuth);
 router.get("/facebook/callback", AuthController.facebookCallback);
 router.get("/session", AuthController.session);
 
+router.get("/status", AuthController.getLoginStatus);
+
 // Logout
 router.get("/logout", AuthController.logout);
 
