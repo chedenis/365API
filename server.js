@@ -97,6 +97,7 @@ app.use(
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 48, // 48 hours
+      domain: ".vercel.app",
     },
   })
 );
