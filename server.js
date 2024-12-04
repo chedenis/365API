@@ -94,7 +94,7 @@ app.use(
     store: mongoStore,
     cookie: {
       secure: process.env.NODE_ENV === "production", // Secure cookies in production
-      sameSite: 'none', // Adjust based on environment
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 48, // 48 hours
     },

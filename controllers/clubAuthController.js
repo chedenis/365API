@@ -7,28 +7,10 @@ const setSessionCookie = (req, res) => {
   console.log("Setting session cookie with session ID:", req.sessionID);
   res.cookie("connect.sid", req.sessionID, {
     secure: process.env.NODE_ENV === "production", // Secure cookies in production
-    sameSite: 'none',
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 48, // 48 hours
   });
-};
-
-exports.getLoginStatus = (req, res) => {
-  if (req.isAuthenticated() && req.user) {
-    const { email, _id } = req.user;
-    return res.status(200).json({
-      loggedIn: true,
-      clubAuth: {
-        id: _id,
-        email,
-      },
-    });
-  } else {
-    return res.status(200).json({
-      loggedIn: false,
-      clubAuth: null,
-    });
-  }
 };
 
 exports.registerClubAuth = async (req, res, next) => {
