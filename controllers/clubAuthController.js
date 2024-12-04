@@ -7,7 +7,7 @@ const setSessionCookie = (req, res) => {
   console.log("Setting session cookie with session ID:", req.sessionID);
   res.cookie("connect.sid", req.sessionID, {
     secure: process.env.NODE_ENV === "production", // Secure cookies in production
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
+    sameSite: "none",
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 48, // 48 hours
   });
