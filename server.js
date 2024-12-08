@@ -33,11 +33,11 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins =
-  process.env.NODE_ENV === "production"
-    ? process.env.PROD_CORS_ORIGINS.split(",")
-    : process.env.DEV_CORS_ORIGINS.split(",");
-
+// const allowedOrigins =
+//   process.env.NODE_ENV === "production"
+//     ? process.env.PROD_CORS_ORIGINS.split(",")
+//     : process.env.DEV_CORS_ORIGINS.split(",");
+const allowedOrigins = ["https://dink-web-qxs3.vercel.app"];
 if (!allowedOrigins) {
   console.error("CORS origins are not defined");
 } else {
@@ -48,9 +48,10 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin === "https://dink-web-qxs3.vercel.app"
+        // !origin ||
+        // allowedOrigins.includes(origin) ||
+        // origin === "https://dink-web-qxs3.vercel.app"
+        allowedOrigins.includes(origin)
       ) {
         callback(null, true);
       } else {
@@ -97,6 +98,8 @@ app.use(
     saveUninitialized: false,
     store: mongoStore,
     cookie: {
+      domain: '.onrender.com',
+      path: '/',
       // secure: process.env.NODE_ENV === "production", // Secure cookies in production
       // sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
       secure: true,

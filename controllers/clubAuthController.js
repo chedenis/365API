@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 const setSessionCookie = (req, res) => {
   console.log("Setting session cookie with session ID:", req.sessionID);
   res.cookie("connect.sid", req.sessionID, {
+    domain: '.onrender.com',
+    path: '/',
     // secure: process.env.NODE_ENV === "production", // Secure cookies in production
     // sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
     secure: true,
