@@ -97,7 +97,6 @@ app.use(
     saveUninitialized: false,
     store: mongoStore,
     cookie: {
-      domain: ".dink-web-qxs3.vercel.app",
       // secure: process.env.NODE_ENV === "production", // Secure cookies in production
       // sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
       secure: true,
