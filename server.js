@@ -47,7 +47,11 @@ if (!allowedOrigins) {
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin === "https://dink-web-qxs3.vercel.app"
+      ) {
         callback(null, true);
       } else {
         console.error(`Blocked by CORS: ${origin}`);
@@ -93,11 +97,13 @@ app.use(
     saveUninitialized: false,
     store: mongoStore,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Secure cookies in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
+      domain: ".dink-web-qxs3.vercel.app",
+      // secure: process.env.NODE_ENV === "production", // Secure cookies in production
+      // sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
+      secure: true,
+      sameSite: "none",
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 48, // 48 hours
-      domain: ".dink-web-qxs3.vercel.app",
     },
   })
 );
