@@ -5,7 +5,7 @@ const userAuthMiddleware = require("../middleware/auth");
 const clubAuthMiddleware = require("../middleware/clubAuth");
 
 // Read Club or PendingClub (for the authenticated club)
-router.get("/read", clubController.readClubs);
+router.get("/read", clubAuthMiddleware, clubController.readClubs);
 
 // Public route to read a club or pending club by ID
 router.get("/read/:id", clubController.readClubById);
