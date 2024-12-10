@@ -8,24 +8,24 @@ const bcrypt = require("bcryptjs");
 // Local Strategy
 passport.use(
   new LocalStrategy(
-    { usernameField: "email" }, // Use "email" instead of "username"
+    { usernameField: "email" },
     async (email, password, done) => {
       try {
-        let auth = await Auth.findOne({ email });
+        const auth = await Auth.findOne({ username: email });
 
-        if (auth) {
-          const isMatch = await bcrypt.compare(password, auth.password);
-          if (!isMatch) {
-            return done(null, false, { message: "Incorrect password." });
-          }
-
-          const user = await User.findById(auth.user);
-          return done(null, user);
-        } else {
+        if (!auth) {
           return done(null, false, {
             message: "No account found with that email.",
           });
         }
+
+        const isMatch = await bcrypt.compare(password, auth.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Incorrect password." });
+        }
+
+        const user = await User.findById(auth.user);
+        return done(null, user);
       } catch (err) {
         return done(err);
       }
@@ -43,16 +43,10 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails ? profile.emails[0].value : null;
-
-        if (!email) {
-          return done(null, false, {
-            message: "No email found with Google account.",
-          });
-        }
+        const email = profile.emails[0].value;
 
         let auth = await Auth.findOne({
-          $or: [{ googleId: profile.id }, { email }],
+          $or: [{ googleId: profile.id }, { username: email }],
         });
 
         if (auth) {
@@ -65,29 +59,23 @@ passport.use(
           return done(null, user);
         } else {
           const newUser = new User({
-            firstName:
-              profile.name.givenName || profile.displayName.split(" ")[0],
-            lastName:
-              profile.name.familyName ||
-              profile.displayName.split(" ")[1] ||
-              "Unknown",
-            email: email,
+            firstName: profile.name.givenName,
+            lastName: profile.name.familyName || "Unknown",
+            email,
           });
-
-          const savedUser = await newUser.save();
+          await newUser.save();
 
           const newAuth = new Auth({
             googleId: profile.id,
-            email: email,
-            user: savedUser._id,
+            username: email,
+            user: newUser._id,
           });
-
           await newAuth.save();
 
-          return done(null, savedUser);
+          return done(null, newUser);
         }
       } catch (err) {
-        return done(err, false);
+        return done(err);
       }
     }
   )
@@ -104,19 +92,10 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email =
-          profile.emails && profile.emails.length > 0
-            ? profile.emails[0].value
-            : null;
-
-        if (!email) {
-          console.log(
-            "No email provided by Facebook. Creating a user without email."
-          );
-        }
+        const email = profile.emails?.[0]?.value || null;
 
         let auth = await Auth.findOne({
-          $or: [{ facebookId: profile.id }, { email }],
+          $or: [{ facebookId: profile.id }, { username: email }],
         });
 
         if (auth) {
@@ -129,29 +108,23 @@ passport.use(
           return done(null, user);
         } else {
           const newUser = new User({
-            firstName:
-              profile.name.givenName || profile.displayName.split(" ")[0],
-            lastName:
-              profile.name.familyName ||
-              profile.displayName.split(" ")[1] ||
-              "Unknown",
-            email: email || "", // Fallback if email is missing
+            firstName: profile.name.givenName,
+            lastName: profile.name.familyName || "Unknown",
+            email,
           });
-
-          const savedUser = await newUser.save();
+          await newUser.save();
 
           const newAuth = new Auth({
             facebookId: profile.id,
-            email: email || "", // Fallback if email is missing
-            user: savedUser._id,
+            username: email,
+            user: newUser._id,
           });
-
           await newAuth.save();
 
-          return done(null, savedUser);
+          return done(null, newUser);
         }
       } catch (err) {
-        return done(err, false);
+        return done(err);
       }
     }
   )

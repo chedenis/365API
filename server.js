@@ -5,10 +5,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const session = require("express-session");
 const passport = require("passport");
 const connectDB = require("./config/db");
-const MongoStore = require("connect-mongo");
 
 // Load environment variables
 dotenv.config();
@@ -76,38 +74,12 @@ app.use("/api/stripe", stripeRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const mongoStore = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  ttl: 14 * 24 * 60 * 60, // 14 days expiration
-});
-
-// Capture and log any errors from MongoStore
-mongoStore.on("error", function (error) {
-  console.error("MongoStore Error:", error);
-});
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: mongoStore,
-    cookie: {
-      secure: process.env.NODE_ENV === "production", // Secure cookies in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust based on environment
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 48, // 48 hours
-    },
-  })
-);
+// Load Passport strategies for users and clubs
+require("./config/passport"); // General user authentication strategies
+require("./config/passportClub"); // Club authentication strategies
 
 // Initialize Passport
 app.use(passport.initialize());
-app.use(passport.session());
-
-// Load Passport strategies
-require("./config/passport"); // General user authentication strategies
-require("./config/passportClub"); // Club authentication strategies
 
 // General request logging middleware
 app.use((req, res, next) => {

@@ -3,9 +3,9 @@ const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
 const bcrypt = require("bcryptjs");
-const { User, ClubAuth } = require("../models");
+const { ClubAuth } = require("../models");
 
-// Local Strategy for Club Auth
+// Local Strategy
 passport.use(
   "club-local",
   new LocalStrategy(
@@ -32,7 +32,7 @@ passport.use(
   )
 );
 
-// Google Strategy for Club Auth
+// Google Strategy
 passport.use(
   "club-google",
   new GoogleStrategy(
@@ -44,7 +44,6 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails[0].value;
-        console.log("Google login email:", email); // Log email for debugging
 
         let clubAuth = await ClubAuth.findOne({
           $or: [{ googleId: profile.id }, { email }],
@@ -55,8 +54,7 @@ passport.use(
             clubAuth.googleId = profile.id;
             await clubAuth.save();
           }
-          console.log("Found clubAuth:", clubAuth); // Log the clubAuth object
-          return done(null, clubAuth); // This should trigger serializeUser
+          return done(null, clubAuth);
         } else {
           const newClubAuth = new ClubAuth({
             googleId: profile.id,
@@ -64,18 +62,16 @@ passport.use(
           });
 
           await newClubAuth.save();
-          console.log("Created new clubAuth:", newClubAuth); // Log the new clubAuth object
-          return done(null, newClubAuth); // This should trigger serializeUser
+          return done(null, newClubAuth);
         }
       } catch (err) {
-        console.error("Error during Google login:", err); // Log any errors
         return done(err, false);
       }
     }
   )
 );
 
-// Facebook Strategy for Club Auth
+// Facebook Strategy
 passport.use(
   "club-facebook",
   new FacebookStrategy(
@@ -88,6 +84,7 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails ? profile.emails[0].value : null;
+
         let clubAuth = await ClubAuth.findOne({
           $or: [{ facebookId: profile.id }, { email }],
         });
@@ -113,28 +110,5 @@ passport.use(
     }
   )
 );
-
-// Serialize and Deserialize Club
-// passport.js (or passportClub.js if separate)
-passport.serializeUser((entity, done) => {
-  console.log("serializeUser called with entity:", entity);
-  const type = entity instanceof User ? "user" : "club";
-  done(null, { id: entity.id, type }); // Store both id and type
-});
-
-passport.deserializeUser(async (obj, done) => {
-  console.log("deserializeUser called with object:", obj); // Add this log
-  try {
-    if (obj.type === "user") {
-      const user = await User.findById(obj.id);
-      done(null, user);
-    } else if (obj.type === "club") {
-      const clubAuth = await ClubAuth.findById(obj.id);
-      done(null, clubAuth);
-    }
-  } catch (err) {
-    done(err);
-  }
-});
 
 module.exports = passport;
