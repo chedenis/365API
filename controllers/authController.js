@@ -15,6 +15,96 @@ const generateToken = (user) => {
   );
 };
 
+// Forgot Password
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const userAuth = await Auth.findOne({ username: email });
+    if (!userAuth) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate a reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiry = Date.now() + 3600000; // 1 hour expiry
+
+    // Update Auth with the reset token and expiry
+    userAuth.resetPasswordToken = resetToken;
+    userAuth.resetPasswordExpires = tokenExpiry;
+    await userAuth.save();
+
+    // Create a reset link
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    // Send the reset email using SES or another email service
+    const params = {
+      Source: process.env.SES_SOURCE_EMAIL, // Verified SES email
+      Destination: { ToAddresses: [email] },
+      Message: {
+        Subject: { Data: "Password Reset Request" },
+        Body: {
+          Html: {
+            Data: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+          },
+          Text: {
+            Data: `Click the following link to reset your password: ${resetUrl}`,
+          },
+        },
+      },
+    };
+
+    // Assuming SES client is set up and imported
+    await s3Client.sendEmail(params).promise();
+
+    res.json({ message: "Password reset email sent successfully." });
+  } catch (err) {
+    console.error("Error in forgotPassword", err);
+    res.status(500).json({ message: "Error sending password reset email." });
+  }
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res
+        .status(400)
+        .json({ error: "Token and new password are required" });
+    }
+
+    // Find Auth record by token and check if token has expired
+    const userAuth = await Auth.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!userAuth) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired reset token." });
+    }
+
+    // Hash and update the password, and clear the reset token and expiry
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    userAuth.password = hashedPassword;
+    userAuth.resetPasswordToken = undefined;
+    userAuth.resetPasswordExpires = undefined;
+    await userAuth.save();
+
+    res.json({ message: "Password reset successful." });
+  } catch (err) {
+    console.error("Error in resetPassword", err);
+    res.status(500).json({ message: "Error resetting password." });
+  }
+};
+
 // Check login status
 exports.getLoginStatus = (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];

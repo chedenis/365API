@@ -40,6 +40,8 @@ const clubAuthSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,

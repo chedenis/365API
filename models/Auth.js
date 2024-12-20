@@ -48,6 +48,8 @@ const authSchema = new mongoose.Schema(
           ? "UserQA"
           : "User", // Explicit environment-based model name, // Use the model name string directly
     },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   {
     timestamps: true,

@@ -6,6 +6,11 @@ const clubAuthController = require("../controllers/clubAuthController");
 router.post("/register", clubAuthController.registerClubAuth);
 router.post("/login", clubAuthController.loginClub);
 
+// Password reset routes
+router.post("/forgot-password", clubAuthController.forgotPassword);
+router.post("/reset-password", clubAuthController.resetPassword);
+
+// Login status
 router.get("/status", clubAuthController.getLoginStatus);
 
 // Google OAuth routes

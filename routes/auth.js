@@ -8,6 +8,12 @@ router.post("/register", AuthController.register);
 // Email and password login
 router.post("/login", AuthController.login);
 
+// Forgot Password route
+router.post("/forgot-password", AuthController.forgotPassword);
+
+// Reset Password route
+router.post("/reset-password", AuthController.resetPassword);
+
 // Google OAuth routes
 router.get("/google", AuthController.googleAuth);
 router.get("/google/callback", AuthController.googleCallback);
