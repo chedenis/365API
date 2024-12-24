@@ -52,6 +52,7 @@ const clubSchema = new mongoose.Schema(
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
     reservationLink: { type: String, required: false },
+    membershipFee: { type: String, required: false },
     outdoorPlay: { type: Boolean, default: false },
     indoorPlay: { type: Boolean, default: false },
     clayCourts: { type: Boolean, default: false },

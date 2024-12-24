@@ -184,9 +184,39 @@ exports.createClub = async (req, res) => {
 
 // Update a Club
 exports.updateClub = async (req, res) => {
+  console.log("updateClub");
   try {
     const updates = flattenUpdates(req.body);
     const { _id } = req.body;
+    console.log(updates, "updatesupdates");
+    if (
+      updates?.memberPerk === "Treat like member" &&
+      !updates?.membershipFee
+    ) {
+      return res.status(400).json({
+        error:
+          "Membership fee is required when member benefits is Treat like member",
+      });
+    }
+    if (
+      updates?.reservations === true &&
+      (!updates?.reservationLink || updates?.reservationLink?.trim() === "")
+    ) {
+      return res.status(400).json({
+        error: "ReservationLink is required when reservations is true",
+      });
+    }
+    if (
+      updates?.reservations === true &&
+      (!updates?.reservationSystem ||
+        updates?.reservationSystem?.trim() === "" ||
+        updates?.reservationSystem?.trim() === "None")
+    ) {
+      return res.status(400).json({
+        error: "Reservation system is required when reservations is true",
+      });
+    }
+
     const existingClub = await Club.findOne({ _id });
 
     if (!existingClub) {
