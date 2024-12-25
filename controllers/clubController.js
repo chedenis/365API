@@ -156,7 +156,10 @@ exports.createClub = async (req, res) => {
     console.log("ClubAuth found for email:", email);
 
     // Check if the club with the given name already exists
-    const existingClub = await Club.findOne({ clubName: clubDetails.clubName });
+    const existingClub = await Club.findOne({
+      clubName: { $regex: `^${clubDetails.clubName}$`, $options: "i" },
+    });
+
     if (existingClub) {
       console.warn(`Club with name ${clubDetails.clubName} already exists.`);
       return res.status(400).json({ error: "Club name already exists" });
@@ -223,6 +226,20 @@ exports.updateClub = async (req, res) => {
       return res.status(404).json({ error: "No Club found for the given _id" });
     }
 
+    // Check if clubName is being updated
+    if (updates?.clubName && updates?.clubName !== existingClub?.clubName) {
+      const clubWithSameName = await Club.findOne({
+        clubName: { $regex: `^${updates.clubName}$`, $options: "i" },
+        _id: { $ne: existingClub._id }, // Exclude the current club
+      });
+
+      if (clubWithSameName) {
+        return res.status(400).json({
+          error: `A club with the name ${updates?.clubName} already exists.`,
+        });
+      }
+    }
+
     // Separate `$set` and `$unset` fields based on "delete" marker
     const setUpdates = {};
     const unsetUpdates = {};
@@ -270,11 +287,11 @@ exports.promoteToClub = async (req, res) => {
       return res.status(404).json({ error: "Club not found" });
     }
 
-    const fullAddress = `${club.address.street}, ${club.address.city}, ${club.address.state} ${club.address.zip}, ${club.address.country}`;
+    const fullAddress = `${club?.address?.street}, ${club?.address?.city}, ${club?.address?.state} ${club?.address?.zip}, ${club?.address?.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
-    if (club.mailingAddress.street !== club.mailingAddress.street) {
-    }
+    // if (club?.mailingAddress?.street !== club?.mailingAddress?.street) {
+    // }
 
     // Update the location field with GeoJSON coordinates (longitude, latitude)
     club.address.location = {

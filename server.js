@@ -97,11 +97,13 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const clubRoutes = require("./routes/club");
 const clubAuthRoutes = require("./routes/clubAuth");
+const locationRoutes = require("./routes/location");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/club", clubRoutes);
 app.use("/api/club-auth", clubAuthRoutes);
+app.use("/api/location", locationRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
