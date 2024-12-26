@@ -8,6 +8,11 @@ router.post("/login", clubAuthController.loginClub);
 
 router.get("/status", clubAuthController.getLoginStatus);
 
+// Forgot Password
+router.post("/forgot-password", clubAuthController.forgotPassword);
+router.get("/validate-token/:id", clubAuthController.validateToken);
+router.post("/reset-password", clubAuthController.resetPassword);
+
 // Google OAuth routes
 router.get("/google", clubAuthController.googleAuth);
 router.get("/google/callback", clubAuthController.googleCallback);

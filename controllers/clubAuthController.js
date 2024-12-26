@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { ClubAuth } = require("../models");
+const sendEmail = require("../utils/mailer");
+const bcrypt = require("bcryptjs");
+const { ResetToken } = require("../models");
 
 // JWT helper function
 const generateToken = (clubAuth) => {
@@ -59,6 +62,100 @@ exports.loginClub = (req, res, next) => {
       clubAuth: { id: clubAuth._id, email: clubAuth.email },
     });
   })(req, res, next);
+};
+
+// Validate Token
+exports.validateToken = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const resetTokenData = await ResetToken.findOne({ token: id });
+
+    if (!resetTokenData) {
+      return res.status(400).json({ message: "Invalid token" });
+    }
+
+    if (resetTokenData?.used) {
+      return res.status(400).json({ message: "Token already used" });
+    }
+
+    if (resetTokenData?.accessed) {
+      return res
+        .status(400)
+        .json({ message: "Token already accessed. The link is invalid." });
+    }
+
+    resetTokenData.accessed = true;
+    await resetTokenData.save();
+
+    res
+      .status(200)
+      .json({ message: "Token is valid. Proceed to reset your password." });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Forgot Password
+exports.forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const user = await ClubAuth.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const resetToken = jwt.sign({ id: user?._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const resetTokenData = new ResetToken({
+      userId: user?._id,
+      token: resetToken,
+    });
+    await resetTokenData.save();
+
+    const resetLink = `${process.env.CLIENT_URL}/club/reset-password?token=${resetToken}`;
+    await sendEmail(email, "Reset Password", resetLink);
+    res.status(200).json({ message: "Reset link sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//Reset Password
+exports.resetPassword = async (req, res, next) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const resetTokenData = await ResetToken.findOne({ token });
+    if (!resetTokenData)
+      return res.status(400).json({ message: "Invalid token" });
+
+    if (resetTokenData?.used) {
+      return res.status(400).json({ message: "Token is already used" });
+    }
+    if (!resetTokenData?.accessed) {
+      return res.status(400).json({
+        message: "Token not accessed. Please validate the token first.",
+      });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await ClubAuth.findById(decoded?.id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    resetTokenData.used = true;
+    await resetTokenData.save();
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+    });
+  }
 };
 
 // Google OAuth

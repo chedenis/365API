@@ -51,4 +51,6 @@ router.get(
   clubController.generateGetPresignedUrl
 );
 
+router.get("/read", clubAuthMiddleware, clubController.readClubs);
+
 module.exports = router;

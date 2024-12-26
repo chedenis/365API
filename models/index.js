@@ -26,12 +26,19 @@ const AuthModelName =
     : environment === "qa"
     ? "AuthQA"
     : "Auth";
+const ResetTokenModelName =
+  environment === "production"
+    ? "ResetTokenPROD"
+    : environment === "qa"
+    ? "ResetTokenQA"
+    : "ResetToken";
 
 // Import schemas
 const ClubSchema = require("./Club");
 const UserSchema = require("./User");
 const ClubAuthSchema = require("./ClubAuth");
 const AuthSchema = require("./Auth");
+const ResetTokenSchema = require("./ResetToken");
 
 // Register each model only once with the dynamic name
 const Club =
@@ -43,8 +50,11 @@ const ClubAuth =
   mongoose.model(ClubAuthModelName, ClubAuthSchema);
 const Auth =
   mongoose.models[AuthModelName] || mongoose.model(AuthModelName, AuthSchema);
+const ResetToken =
+  mongoose.models[ResetTokenModelName] ||
+  mongoose.model(AuthModelName, ResetTokenSchema);
 
 console.log("Registered models:", mongoose.modelNames());
 
 // Export models for use in other files
-module.exports = { Club, User, ClubAuth, Auth };
+module.exports = { Club, User, ClubAuth, Auth, ResetToken };

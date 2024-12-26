@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const passport = require("passport");
 const connectDB = require("./config/db");
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -86,6 +87,8 @@ app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
   next();
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Handle HEAD requests without sending a response body
 app.head("/", (req, res) => {
