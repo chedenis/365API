@@ -6,7 +6,7 @@ const clubAuthController = require("../controllers/clubAuthController");
 router.post("/register", clubAuthController.registerClubAuth);
 router.post("/login", clubAuthController.loginClub);
 
-router.get("/status", clubAuthController.getLoginStatus);
+router.post("/status", clubAuthController.getLoginStatus);
 
 // Forgot Password
 router.post("/forgot-password", clubAuthController.forgotPassword);

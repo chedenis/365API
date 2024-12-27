@@ -112,7 +112,9 @@ exports.forgotPassword = async (req, res, next) => {
     });
     await resetTokenData.save();
 
-    const resetLink = `${process.env.CLIENT_URL}/club/reset-password?token=${resetToken}`;
+    const resetLink = `${
+      process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+    }/club/reset-password?token=${resetToken}`;
     await sendEmail(email, "Reset Password", resetLink);
     res.status(200).json({ message: "Reset link sent to your email" });
   } catch (error) {
@@ -145,7 +147,7 @@ exports.resetPassword = async (req, res, next) => {
 
     user.password = newPassword;
     await user.save();
-   
+
     resetTokenData.used = true;
     await resetTokenData.save();
     res.status(200).json({ message: "Password reset successfully" });
@@ -165,13 +167,18 @@ exports.googleAuth = passport.authenticate("club-google", {
 exports.googleCallback = (req, res, next) => {
   passport.authenticate("club-google", (err, clubAuth) => {
     if (err || !clubAuth) {
-      return res.redirect("/api/club-auth/failure");
+      return res.redirect(
+        `${
+          process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+        }/club/login`
+      );
     }
-
     const token = generateToken(clubAuth);
-
-    // Redirect with token (you can include it as a query parameter)
-    res.redirect(`${process.env.CLUB_SUCCESS_REDIRECT}?token=${token}`);
+    res.redirect(
+      `${
+        process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+      }/club/type?token=${token}`
+    );
   })(req, res, next);
 };
 
@@ -180,34 +187,47 @@ exports.facebookAuth = passport.authenticate("club-facebook");
 
 exports.facebookCallback = (req, res, next) => {
   passport.authenticate("club-facebook", (err, clubAuth) => {
+    console.log(err, clubAuth, "err, clubAuth");
     if (err || !clubAuth) {
-      return res.redirect("/api/club-auth/failure");
+      return res.redirect(
+        `${
+          process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+        }/club/login`
+      );
     }
-
     const token = generateToken(clubAuth);
-
-    res.redirect(`${process.env.CLUB_SUCCESS_REDIRECT}?token=${token}`);
+    res.redirect(
+      `${
+        process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+      }/club/type?token=${token}`
+    );
   })(req, res, next);
 };
 
 // Check login status
-exports.getLoginStatus = (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
+exports.getLoginStatus = async (req, res) => {
+  const { token } = req.body;
 
   if (!token) {
-    return res.status(200).json({ loggedIn: false, clubAuth: null });
+    return res.status(400).json({ message: "Token is required" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(200).json({ loggedIn: false, clubAuth: null });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await ClubAuth.findOne({
+      $or: [{ googleId: decoded?.googleId }, { email: decoded?.email }],
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({
-      loggedIn: true,
-      clubAuth: { id: decoded.id, email: decoded.email },
-    });
-  });
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)

@@ -76,14 +76,16 @@ passport.use(
   "club-facebook",
   new FacebookStrategy(
     {
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      clientID: process.env.FACEBOOK_APP_ID || "596445456098516",
+      clientSecret:
+        process.env.FACEBOOK_APP_SECRET || "0e4abbc4ac9e165d9bb5fef01061d73f",
       callbackURL: "/api/club-auth/facebook/callback",
       profileFields: ["id", "displayName", "emails"],
     },
     async (accessToken, refreshToken, profile, done) => {
+      console.log(accessToken, refreshToken, profile, done, "facebook");
       try {
-        const email = profile.emails ? profile.emails[0].value : null;
+        const email = profile?.emails ? profile?.emails?.[0]?.value : null;
 
         let clubAuth = await ClubAuth.findOne({
           $or: [{ facebookId: profile.id }, { email }],

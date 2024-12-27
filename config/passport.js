@@ -43,7 +43,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails[0].value;
+        const email = profile?.emails?.[0]?.value;
 
         let auth = await Auth.findOne({
           $or: [{ googleId: profile.id }, { username: email }],
@@ -59,16 +59,16 @@ passport.use(
           return done(null, user);
         } else {
           const newUser = new User({
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName || "Unknown",
+            firstName: profile?.name?.givenName,
+            lastName: profile?.name?.familyName || "Unknown",
             email,
           });
           await newUser.save();
 
           const newAuth = new Auth({
-            googleId: profile.id,
+            googleId: profile?.id,
             username: email,
-            user: newUser._id,
+            user: newUser?._id,
           });
           await newAuth.save();
 
@@ -92,32 +92,32 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails?.[0]?.value || null;
+        const email = profile?.emails?.[0]?.value || null;
 
         let auth = await Auth.findOne({
-          $or: [{ facebookId: profile.id }, { username: email }],
+          $or: [{ facebookId: profile?.id }, { username: email }],
         });
 
         if (auth) {
           if (!auth.facebookId) {
-            auth.facebookId = profile.id;
+            auth.facebookId = profile?.id;
             await auth.save();
           }
 
-          const user = await User.findById(auth.user);
+          const user = await User.findById(auth?.user);
           return done(null, user);
         } else {
           const newUser = new User({
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName || "Unknown",
+            firstName: profile?.name?.givenName,
+            lastName: profile?.name?.familyName || "Unknown",
             email,
           });
           await newUser.save();
 
           const newAuth = new Auth({
-            facebookId: profile.id,
+            facebookId: profile?.id,
             username: email,
-            user: newUser._id,
+            user: newUser?._id,
           });
           await newAuth.save();
 
