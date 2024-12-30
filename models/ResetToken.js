@@ -25,4 +25,13 @@ const resetTokenSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("ResetToken", resetTokenSchema);
+let modelName = "ResetToken";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "ResetTokenQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "ResetTokenPROD";
+}
+
+// Export the model with the dynamic name
+module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, resetTokenSchema);
