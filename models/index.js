@@ -52,7 +52,7 @@ const Auth =
   mongoose.models[AuthModelName] || mongoose.model(AuthModelName, AuthSchema);
 const ResetToken =
   mongoose.models[ResetTokenModelName] ||
-  mongoose.model(AuthModelName, ResetTokenSchema);
+  mongoose.model(ResetTokenModelName, ResetTokenSchema);
 
 console.log("Registered models:", mongoose.modelNames());
 
