@@ -76,9 +76,8 @@ passport.use(
   "club-facebook",
   new FacebookStrategy(
     {
-      clientID: process.env.FACEBOOK_APP_ID || "596445456098516",
-      clientSecret:
-        process.env.FACEBOOK_APP_SECRET || "0e4abbc4ac9e165d9bb5fef01061d73f",
+      clientID: "596445456098516",
+      clientSecret: "0e4abbc4ac9e165d9bb5fef01061d73f",
       callbackURL: "/api/club-auth/facebook/callback",
       profileFields: ["id", "displayName", "emails"],
     },
