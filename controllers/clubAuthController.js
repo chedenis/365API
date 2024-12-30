@@ -111,9 +111,9 @@ exports.forgotPassword = async (req, res, next) => {
       token: resetToken,
     });
     await resetTokenData.save();
-
+    // Please remove static credentials once we have updated the .env file correctly
     const resetLink = `${
-      process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+      process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
     }/club/reset-password?token=${resetToken}`;
     await sendEmail(email, "Reset Password", resetLink);
     res.status(200).json({ message: "Reset link sent to your email" });
@@ -167,16 +167,18 @@ exports.googleAuth = passport.authenticate("club-google", {
 exports.googleCallback = (req, res, next) => {
   passport.authenticate("club-google", (err, clubAuth) => {
     if (err || !clubAuth) {
+      // Please remove static credentials once we have updated the .env file correctly
       return res.redirect(
         `${
-          process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+          process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
         }/club/login`
       );
     }
     const token = generateToken(clubAuth);
+    // Please remove static credentials once we have updated the .env file correctly
     res.redirect(
       `${
-        process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+        process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
       }/club/type?token=${token}`
     );
   })(req, res, next);
@@ -189,16 +191,18 @@ exports.facebookCallback = (req, res, next) => {
   passport.authenticate("club-facebook", (err, clubAuth) => {
     console.log(err, clubAuth, "err, clubAuth");
     if (err || !clubAuth) {
+      // Please remove static credentials once we have updated the .env file correctly
       return res.redirect(
         `${
-          process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+          process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
         }/club/login`
       );
     }
     const token = generateToken(clubAuth);
+    // Please remove static credentials once we have updated the .env file correctly
     res.redirect(
       `${
-        process.env.CLIENT_URL || "https://dink-web-qxs3.vercel.app"
+        process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
       }/club/type?token=${token}`
     );
   })(req, res, next);
