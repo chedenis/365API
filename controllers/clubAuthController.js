@@ -219,10 +219,11 @@ exports.getLoginStatus = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await ClubAuth.findOne({
-      $or: [{ googleId: decoded?.googleId }, { email: decoded?.email }],
-    });
-
+    if (!decoded?.email) {
+      return res.status(400).json({ message: "Token does not contain an email" });
+    }
+    
+    const user = await ClubAuth.findOne({ email: decoded?.email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
