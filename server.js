@@ -32,7 +32,7 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins = CORS_ORIGINS.split(",");
+const allowedOrigins = process.env.CORS_ORIGINS.split(",");
 
 if (!allowedOrigins) {
   console.error("CORS origins are not defined");
