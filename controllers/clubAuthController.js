@@ -5,10 +5,7 @@ const sendEmail = require("../utils/mailer");
 const bcrypt = require("bcryptjs");
 const { ResetToken } = require("../models");
 
-const URL =
-  process.env.NODE_ENV === "production"
-    ? process.env.FRONTEND_PROD_URL
-    : process.env.FRONTEND_URL;
+const URL = process.env.FRONTEND_URL;
 
 // JWT helper function
 const generateToken = (clubAuth) => {
