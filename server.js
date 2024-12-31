@@ -7,7 +7,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const passport = require("passport");
 const connectDB = require("./config/db");
-const path = require('path');
+const path = require("path");
 
 // Load environment variables
 dotenv.config();
@@ -32,10 +32,7 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins =
-  process.env.NODE_ENV === "production"
-    ? process.env.PROD_CORS_ORIGINS.split(",")
-    : process.env.DEV_CORS_ORIGINS.split(",");
+const allowedOrigins = CORS_ORIGINS.split(",");
 
 if (!allowedOrigins) {
   console.error("CORS origins are not defined");
@@ -88,7 +85,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Handle HEAD requests without sending a response body
 app.head("/", (req, res) => {
