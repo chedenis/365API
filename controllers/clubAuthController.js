@@ -5,6 +5,11 @@ const sendEmail = require("../utils/mailer");
 const bcrypt = require("bcryptjs");
 const { ResetToken } = require("../models");
 
+const URL =
+  process.env.NODE_ENV === "production"
+    ? process.env.FRONTEND_PROD_URL
+    : process.env.FRONTEND_URL;
+
 // JWT helper function
 const generateToken = (clubAuth) => {
   return jwt.sign(
@@ -112,9 +117,7 @@ exports.forgotPassword = async (req, res, next) => {
     });
     await resetTokenData.save();
     // Please remove static credentials once we have updated the .env file correctly
-    const resetLink = `${
-      process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
-    }/club/reset-password?token=${resetToken}`;
+    const resetLink = `${URL}/club/reset-password?token=${resetToken}`;
     await sendEmail(email, "Reset Password", resetLink);
     res.status(200).json({ message: "Reset link sent to your email" });
   } catch (error) {
@@ -168,19 +171,11 @@ exports.googleCallback = (req, res, next) => {
   passport.authenticate("club-google", (err, clubAuth) => {
     if (err || !clubAuth) {
       // Please remove static credentials once we have updated the .env file correctly
-      return res.redirect(
-        `${
-          process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
-        }/club/login`
-      );
+      return res.redirect(`${URL}/club/login`);
     }
     const token = generateToken(clubAuth);
     // Please remove static credentials once we have updated the .env file correctly
-    res.redirect(
-      `${
-        process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
-      }/club/type?token=${token}`
-    );
+    res.redirect(`${URL}/club/type?token=${token}`);
   })(req, res, next);
 };
 
@@ -192,19 +187,11 @@ exports.facebookCallback = (req, res, next) => {
     console.log(err, clubAuth, "err, clubAuth");
     if (err || !clubAuth) {
       // Please remove static credentials once we have updated the .env file correctly
-      return res.redirect(
-        `${
-          process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
-        }/club/login`
-      );
+      return res.redirect(`${URL}/club/login`);
     }
     const token = generateToken(clubAuth);
     // Please remove static credentials once we have updated the .env file correctly
-    res.redirect(
-      `${
-        process.env.FRONTEND_URL || "https://dink-web-qxs3.vercel.app"
-      }/club/type?token=${token}`
-    );
+    res.redirect(`${URL}/club/type?token=${token}`);
   })(req, res, next);
 };
 
@@ -220,9 +207,11 @@ exports.getLoginStatus = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded?.email) {
-      return res.status(400).json({ message: "Token does not contain an email" });
+      return res
+        .status(400)
+        .json({ message: "Token does not contain an email" });
     }
-    
+
     const user = await ClubAuth.findOne({ email: decoded?.email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });

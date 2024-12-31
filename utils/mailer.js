@@ -5,11 +5,11 @@ const sendEmail = async (to, subject, resetLink) => {
   try {
     // Please remove static credentials once we have updated the .env file correctly
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST || "sandbox.smtp.mailtrap.io",
-      port: process.env.MAIL_PORT || "2525",
+      host: process.env.MAIL_HOST,
+      port: process.env.MAIL_PORT,
       auth: {
-        user: process.env.MAIL_USER || "d264977e70db1f",
-        pass: process.env.MAIL_PASSWORD || "8af77260091866",
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASSWORD,
       },
     });
 
