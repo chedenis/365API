@@ -5,13 +5,13 @@ const FacebookStrategy = require("passport-facebook").Strategy;
 const { Auth, User } = require("../models");
 const bcrypt = require("bcryptjs");
 
-// Local Strategy
 passport.use(
   new LocalStrategy(
     { usernameField: "email" },
     async (email, password, done) => {
       try {
-        const auth = await Auth.findOne({ username: email });
+        console.log("passport knows email? " + email);
+        const auth = await Auth.findOne({ email: email });
 
         if (!auth) {
           return done(null, false, {
@@ -19,8 +19,18 @@ passport.use(
           });
         }
 
+        console.log("Stored hashed password in auth:", auth.password);
+        console.log("Comparing with plaintext password:", password);
+
+        // Log length of both strings
+        console.log("Stored password length:", auth.password.length);
+        console.log("Provided password length:", password.length);
+
+        // If password comparison still fails, check their actual values
         const isMatch = await bcrypt.compare(password, auth.password);
+
         if (!isMatch) {
+          console.log("Password mismatch!"); // Log if passwords don't match
           return done(null, false, { message: "Incorrect password." });
         }
 

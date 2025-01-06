@@ -1,7 +1,8 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { Auth, User } = require("../models");
+const { ConnectionClosedEvent } = require("mongodb");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -44,36 +45,39 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const existingAuth = await Auth.findOne({ username: email });
+    // Check if the user already exists
+    const existingAuth = await Auth.findOne({ email });
     if (existingAuth) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      email,
-    });
+    // Create the User
+    const newUser = new User({ email });
     await newUser.save();
 
+    // Create the Auth record; pass plaintext password
     const newAuth = new Auth({
-      username: email,
-      password: hashedPassword,
+      email,
+      password, // Plaintext password; the hook will hash it
       user: newUser._id,
     });
+
     await newAuth.save();
 
+    // Generate a token
     const token = generateToken(newUser);
 
     res.status(201).json({ message: "User registered successfully", token });
   } catch (err) {
-    console.error("Error registering user", err);
+    console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
   }
 };
 
 // Login with email and password
 exports.login = (req, res, next) => {
+  console.log("attempting login with email");
+  console.log(req.body.email);
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       return next(err);
@@ -83,11 +87,12 @@ exports.login = (req, res, next) => {
     }
 
     const token = generateToken(user);
-
+    console.log("we are here");
+    console.log(user);
     res.status(200).json({
       message: "Logged in successfully",
       token,
-      user: { id: user._id, email: user.email },
+      user: user,
     });
   })(req, res, next);
 };
