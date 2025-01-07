@@ -14,7 +14,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.679.0",
+    "@aws-sdk/client-s3": "^3.722.0",
+    "@aws-sdk/client-ses": "^3.721.0",
     "@aws-sdk/s3-request-presigner": "^3.679.0",
     "@vercel/node": "^3.2.24",
     "axios": "^1.7.2",
