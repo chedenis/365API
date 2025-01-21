@@ -156,15 +156,15 @@ exports.createClub = async (req, res) => {
     console.log("ClubAuth found for email:", email);
 
     // Check if the club with the given name already exists
-    const existingClub = await Club.findOne({
-      clubName: { $regex: `^${clubDetails.clubName}$`, $options: "i" },
-    });
+    // const existingClub = await Club.findOne({
+    //   clubName: { $regex: `^${clubDetails.clubName}$`, $options: "i" },
+    // });
 
-    if (existingClub) {
-      console.warn(`Club with name ${clubDetails.clubName} already exists.`);
-      return res.status(400).json({ error: "Club name already exists" });
-    }
-    console.log("No existing club found with name:", clubDetails.clubName);
+    // if (existingClub) {
+    //   console.warn(`Club with name ${clubDetails.clubName} already exists.`);
+    //   return res.status(400).json({ error: "Club name already exists" });
+    // }
+    // console.log("No existing club found with name:", clubDetails.clubName);
 
     // Create and save the new club
     const newClub = new Club(clubDetails);
@@ -227,18 +227,18 @@ exports.updateClub = async (req, res) => {
     }
 
     // Check if clubName is being updated
-    if (updates?.clubName && updates?.clubName !== existingClub?.clubName) {
-      const clubWithSameName = await Club.findOne({
-        clubName: { $regex: `^${updates.clubName}$`, $options: "i" },
-        _id: { $ne: existingClub._id }, // Exclude the current club
-      });
+    // if (updates?.clubName && updates?.clubName !== existingClub?.clubName) {
+    //   const clubWithSameName = await Club.findOne({
+    //     clubName: { $regex: `^${updates.clubName}$`, $options: "i" },
+    //     _id: { $ne: existingClub._id }, // Exclude the current club
+    //   });
 
-      if (clubWithSameName) {
-        return res.status(400).json({
-          error: `A club with the name ${updates?.clubName} already exists.`,
-        });
-      }
-    }
+    //   if (clubWithSameName) {
+    //     return res.status(400).json({
+    //       error: `A club with the name ${updates?.clubName} already exists.`,
+    //     });
+    //   }
+    // }
 
     // Separate `$set` and `$unset` fields based on "delete" marker
     const setUpdates = {};
