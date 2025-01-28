@@ -56,7 +56,7 @@ passport.use(
         const email = profile?.emails?.[0]?.value;
 
         let auth = await Auth.findOne({
-          $or: [{ googleId: profile.id }, { username: email }],
+          $or: [{ googleId: profile.id }, { email }],
         });
 
         if (auth) {
@@ -77,7 +77,7 @@ passport.use(
 
           const newAuth = new Auth({
             googleId: profile?.id,
-            username: email,
+            email,
             user: newUser?._id,
           });
           await newAuth.save();

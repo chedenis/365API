@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { Auth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
+const URL = process.env.FRONTEND_URL;
 
 // JWT helper function
 const generateToken = (user) => {
@@ -17,23 +18,32 @@ const generateToken = (user) => {
 };
 
 // Check login status
-exports.getLoginStatus = (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
+exports.getLoginStatus = async(req, res) => {
+  const { token } = req.body;
 
   if (!token) {
-    return res.status(200).json({ loggedIn: false, user: null });
+    return res.status(400).json({ message: "Token is required" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(200).json({ loggedIn: false, user: null });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded?.email) {
+      return res
+        .status(400)
+        .json({ message: "Token does not contain an email" });
     }
 
-    res.status(200).json({
-      loggedIn: true,
-      user: { id: decoded.id, email: decoded.email },
-    });
-  });
+    const user = await User.findOne({ email: decoded?.email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
 // Register a new user
@@ -103,14 +113,16 @@ exports.googleAuth = passport.authenticate("google", {
 });
 
 exports.googleCallback = (req, res, next) => {
+  // console.log(req,res, next)
   passport.authenticate("google", (err, user) => {
+    console.log(err,user,"errr")
+
     if (err || !user) {
-      return res.redirect("/api/auth/failure");
+      return res.redirect(`${URL}/member/login`);
     }
 
     const token = generateToken(user);
-
-    res.redirect(`${process.env.WEB_SUCCESS_REDIRECT}?token=${token}`);
+    res.redirect(`${URL}/member/type?token=${token}`);
   })(req, res, next);
 };
 
