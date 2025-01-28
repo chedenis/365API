@@ -11,7 +11,7 @@ const getAllCountries = async (req, res) => {
     const sortedCountries = countries.sort((a, b) => {
       if (a.name === "United States") return -1;
       if (b.name === "United States") return 1;
-      return a.name.localeCompare(b.name); 
+      return a.name.localeCompare(b.name);
     });
     return res.status(200).json(sortedCountries);
   } catch (error) {
@@ -34,7 +34,66 @@ const getStatesByCountryCode = async (req, res) => {
         .json({ message: "No states found for this country code" });
     }
 
-    return res.status(200).json(states);
+    const usStatesAndDC = [
+      "Alabama",
+      "Alaska",
+      "Arizona",
+      "Arkansas",
+      "California",
+      "Colorado",
+      "Connecticut",
+      "Delaware",
+      "Florida",
+      "Georgia",
+      "Hawaii",
+      "Idaho",
+      "Illinois",
+      "Indiana",
+      "Iowa",
+      "Kansas",
+      "Kentucky",
+      "Louisiana",
+      "Maine",
+      "Maryland",
+      "Massachusetts",
+      "Michigan",
+      "Minnesota",
+      "Mississippi",
+      "Missouri",
+      "Montana",
+      "Nebraska",
+      "Nevada",
+      "New Hampshire",
+      "New Jersey",
+      "New Mexico",
+      "New York",
+      "North Carolina",
+      "North Dakota",
+      "Ohio",
+      "Oklahoma",
+      "Oregon",
+      "Pennsylvania",
+      "Rhode Island",
+      "South Carolina",
+      "South Dakota",
+      "Tennessee",
+      "Texas",
+      "Utah",
+      "Vermont",
+      "Virginia",
+      "Washington",
+      "West Virginia",
+      "Wisconsin",
+      "Wyoming",
+      "District of Columbia",
+    ];
+
+    const filteredStates = states.filter((state) =>
+      usStatesAndDC.includes(state.name)
+    );
+
+    return res.status(200).json(filteredStates);
+
   } catch (error) {
     console.error("Error fetching states:", error);
     return res.status(500).json({ message: "Server error" });
