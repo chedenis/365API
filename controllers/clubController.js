@@ -304,8 +304,8 @@ exports.deleteClub = async (req, res) => {
       );
       await clubAuth.save();
     }
-
-    await club.remove();
+    
+    await Club.findByIdAndDelete(id);
     res.status(200).json({ message: "Club deleted successfully" });
   } catch (error) {
     console.error("Error deleting club", error);
