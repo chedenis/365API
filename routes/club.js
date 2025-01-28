@@ -20,7 +20,7 @@ router.put("/update", clubAuthMiddleware, clubController.updateClub);
 router.put("/promote/:id", clubController.promoteToClub);
 
 // Delete Club or PendingClub (for the authenticated club)
-router.delete("/delete", clubAuthMiddleware, clubController.deleteClub);
+router.delete("/delete/:id", clubAuthMiddleware, clubController.deleteClub);
 
 // List all PendingClubs (for authorized users only)
 //router.get("/pending", userAuthMiddleware, clubController.listPendingClubs);

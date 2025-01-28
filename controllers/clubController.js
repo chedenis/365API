@@ -291,8 +291,28 @@ exports.promoteToClub = async (req, res) => {
 
 // Delete PendingClub or Club (depending on the status)
 exports.deleteClub = async (req, res) => {
-  // TODO: Implement delete logic for club and update clubAuth
-  res.status(501).json({ error: "Delete functionality not implemented" });
+  try {
+    const { id } = req.params;
+    const club = await Club.findById(id);
+    if (!club) {
+      return res.status(404).json({ error: "Club not found" });
+    }
+    const clubAuth = await ClubAuth.findOne({ clubs: id });
+    if (clubAuth) {
+      clubAuth.clubs = clubAuth.clubs.filter(
+        (clubId) => clubId.toString() !== id
+      );
+      await clubAuth.save();
+    }
+
+    await club.remove();
+    res.status(200).json({ message: "Club deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting club", error);
+    res
+      .status(500)
+      .json({ error: "Error deleting club", details: error.message });
+  }
 };
 
 // List all PendingClubs (for authorized users only)
