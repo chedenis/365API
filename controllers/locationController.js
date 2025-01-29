@@ -81,18 +81,20 @@ const getStatesByCountryCode = async (req, res) => {
       "Utah",
       "Vermont",
       "Virginia",
-      "Washington",
+      "Washington DC",
       "West Virginia",
       "Wisconsin",
       "Wyoming",
     ];
 
-    const filteredStates = states.filter((state) =>
-      usStatesAndDC.includes(state.name)
-    );
+    const filteredStates = states.filter((state) => {
+      if (state.name === "Washington") {
+        state.name = "Washington DC";
+      }
+      return usStatesAndDC.includes(state.name);
+    });
 
     return res.status(200).json(filteredStates);
-
   } catch (error) {
     console.error("Error fetching states:", error);
     return res.status(500).json({ message: "Server error" });
