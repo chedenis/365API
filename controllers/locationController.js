@@ -81,11 +81,10 @@ const getStatesByCountryCode = async (req, res) => {
       "Utah",
       "Vermont",
       "Virginia",
-      "Washington",
+      "Washington DC",
       "West Virginia",
       "Wisconsin",
       "Wyoming",
-      "District of Columbia",
     ];
 
     const filteredStates = states.filter((state) =>
