@@ -152,7 +152,7 @@ exports.forgotPassword = async (req, res) => {
 
     await resetTokenData.save();
 
-    const resetLink = `${URL}/auth/reset-password?token=${resetToken}`;
+    const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
     await sendEmail(email, "ResetPassword", resetLink);
 
     res.status(200).json({ message: "Reset Link sent to your email" });
