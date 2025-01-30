@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { Auth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
+const sendEmail = require("../utils/mailer");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 
