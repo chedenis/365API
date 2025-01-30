@@ -3,8 +3,9 @@ const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { Auth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
-const ResetToken = require("../models/ResetToken");
+const ResetTokenMember = require("../models/ResetTokenMember");
 const URL = process.env.FRONTEND_URL;
+const sendEmail = require("../utils/mailer");
 
 // JWT helper function
 const generateToken = async (user) => {
@@ -16,7 +17,7 @@ const generateToken = async (user) => {
     process.env.JWT_SECRET,
     { expiresIn: "48h" } // Adjust expiration as needed
   );
-  const resetToken = new ResetToken({
+  const resetToken = new ResetTokenMember({
     token,
     used: false,
     accessed: false
@@ -120,7 +121,7 @@ exports.login = (req, res, next) => {
 exports.validateToken = async (req, res) => {
   const { token } = req.params;
   try {
-    const resetTokenData = await ResetToken.findOne({ token });
+    const resetTokenData = await ResetTokenMember.findOne({ token });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
@@ -154,7 +155,7 @@ exports.forgotPassword = async (req, res) => {
       expiresIn: "1h",
     });
 
-    const resetTokenData = new ResetToken({
+    const resetTokenData = new ResetTokenMember({
       userId: user._id,
       token: resetToken,
     });
@@ -162,7 +163,12 @@ exports.forgotPassword = async (req, res) => {
     await resetTokenData.save();
 
     const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
-    await sendEmail(email, "ResetPassword", resetLink);
+    try {
+      await sendEmail(email, "ResetPassword", resetLink);
+   } catch (error) {
+      console.error("Email sending failed:", error);
+      return res.status(500).json({ message: "Failed to send reset email" });
+   }
 
     res.status(200).json({ message: "Reset Link sent to your email" });
   } catch (error) {
@@ -174,7 +180,7 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
   try {
-    const resetTokenData = await ResetToken.findOne({ token });
+    const resetTokenData = await ResetTokenMember.findOne({ token });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
