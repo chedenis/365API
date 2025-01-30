@@ -8,8 +8,8 @@ const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 
 // JWT helper function
-const generateToken = (user) => {
-  return jwt.sign(
+const generateToken = async (user) => {
+   const token =  jwt.sign(
     {
       id: user._id,
       email: user.email,
@@ -17,6 +17,15 @@ const generateToken = (user) => {
     process.env.JWT_SECRET,
     { expiresIn: "48h" } // Adjust expiration as needed
   );
+  const resetToken = new ResetToken({
+    token,
+    used: false,
+    accessed: false
+  })
+
+  await resetToken.save();
+
+  return token;
 };
 
 // Check login status
