@@ -162,7 +162,7 @@ exports.forgotPassword = async (req, res) => {
 
     await resetTokenData.save();
 
-    const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
+    const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
     try {
       await sendEmail(email, "ResetPassword", resetLink);
    } catch (error) {
