@@ -3,13 +3,13 @@ const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { Auth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
-const ResetTokenMember = require("../models/ResetTokenMember");
+const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 const sendEmail = require("../utils/mailer");
 
 // JWT helper function
-const generateToken = async (user) => {
-   const token =  jwt.sign(
+const generateToken = (user) => {
+  return jwt.sign(
     {
       id: user._id,
       email: user.email,
@@ -17,15 +17,6 @@ const generateToken = async (user) => {
     process.env.JWT_SECRET,
     { expiresIn: "48h" } // Adjust expiration as needed
   );
-  const resetToken = new ResetTokenMember({
-    token,
-    used: false,
-    accessed: false
-  })
-
-  await resetToken.save();
-
-  return token;
 };
 
 // Check login status
@@ -86,7 +77,7 @@ exports.register = async (req, res) => {
     await newAuth.save();
 
     // Generate a token
-    const token = generateToken(newUser);
+    const token = await generateToken(newUser);
 
     res.status(201).json({ message: "User registered successfully", token });
   } catch (err) {
@@ -121,7 +112,7 @@ exports.login = (req, res, next) => {
 exports.validateToken = async (req, res) => {
   const { token } = req.params;
   try {
-    const resetTokenData = await ResetTokenMember.findOne({ token });
+    const resetTokenData = await ResetToken.findOne({ token });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
@@ -155,7 +146,7 @@ exports.forgotPassword = async (req, res) => {
       expiresIn: "1h",
     });
 
-    const resetTokenData = new ResetTokenMember({
+    const resetTokenData = new ResetToken({
       userId: user._id,
       token: resetToken,
     });
@@ -180,14 +171,14 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
   try {
-    const resetTokenData = await ResetTokenMember.findOne({ token });
+    const resetTokenData = await ResetToken.findOne({ token });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
-    if (!resetTokenData?.used) {
+    if (resetTokenData?.used) {
       return res.status(400).json({ message: "Token already used" });
     }
-    if (!resetTokenData.accessed) {
+    if (resetTokenData.accessed === false) {
       return res.status(400).json({
         message: "Token not accessed. Please validate the token first",
       });
@@ -219,16 +210,28 @@ exports.googleAuth = passport.authenticate("google", {
 });
 
 exports.googleCallback = (req, res, next) => {
-  // console.log(req,res, next)
-  passport.authenticate("google", (err, user) => {
-    console.log(err, user, "errr");
+  passport.authenticate("google", async (err, user) => {
+    console.log("🔹 User from Google Callback:", user);
 
     if (err || !user) {
+      console.error("🚨 Google Auth Error:", err);
       return res.redirect(`${URL}/member/login`);
     }
 
-    const token = generateToken(user);
-    res.redirect(`${URL}/member/type?token=${token}`);
+    try {
+      if (!user._id) {
+        console.error("🚨 Error: User ID is missing:", user);
+        return res.redirect(`${URL}/member/login`);
+      }
+
+      const token = await generateToken(user);
+      console.log("✅ Token Generated:", token);
+
+      res.redirect(`${URL}/member/type?token=${token}`);
+    } catch (error) {
+      console.error("❌ Error generating token:", error);
+      return res.redirect(`${URL}/member/login`);
+    }
   })(req, res, next);
 };
 
