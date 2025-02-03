@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { Auth, User } = require("../models");
+const { ClubAuth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
@@ -138,10 +138,10 @@ exports.validateToken = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+
+    let user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
@@ -149,11 +149,12 @@ exports.forgotPassword = async (req, res) => {
     const resetTokenData = new ResetToken({
       userId: user._id,
       token: resetToken,
+      createdAt: new Date(),
     });
 
     await resetTokenData.save();
 
-    const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
+    const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
     try {
       await sendEmail(email, "ResetPassword", resetLink);
    } catch (error) {
@@ -189,7 +190,8 @@ exports.resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    user.password = newPassword;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
     await user.save();
 
     resetTokenData.used = true;
