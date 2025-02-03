@@ -7,7 +7,6 @@ const resetTokenSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "ClubAuth",
     required: true,
   },
   used: {
