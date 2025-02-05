@@ -1,8 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { Auth, User } = require("../models");
+const { ClubAuth, User } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
+const ResetToken = require("../models/ResetToken");
+const URL = process.env.FRONTEND_URL;
+const sendEmail = require("../utils/mailer");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -17,23 +20,32 @@ const generateToken = (user) => {
 };
 
 // Check login status
-exports.getLoginStatus = (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
+exports.getLoginStatus = async (req, res) => {
+  const { token } = req.body;
 
   if (!token) {
-    return res.status(200).json({ loggedIn: false, user: null });
+    return res.status(400).json({ message: "Token is required" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(200).json({ loggedIn: false, user: null });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded?.email) {
+      return res
+        .status(400)
+        .json({ message: "Token does not contain an email" });
     }
 
-    res.status(200).json({
-      loggedIn: true,
-      user: { id: decoded.id, email: decoded.email },
-    });
-  });
+    const user = await User.findOne({ email: decoded?.email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
 // Register a new user
@@ -65,7 +77,7 @@ exports.register = async (req, res) => {
     await newAuth.save();
 
     // Generate a token
-    const token = generateToken(newUser);
+    const token = await generateToken(newUser);
 
     res.status(201).json({ message: "User registered successfully", token });
   } catch (err) {
@@ -97,20 +109,144 @@ exports.login = (req, res, next) => {
   })(req, res, next);
 };
 
+exports.validateToken = async (req, res) => {
+  const { token } = req.params;
+  try {
+    const resetTokenData = await ResetToken.findOne({ token });
+    if (!resetTokenData) {
+      return res.status(400).json({ message: "Invalid Token" });
+    }
+    if (resetTokenData?.used) {
+      return res.status(400).json({ message: "Token already used" });
+    }
+    if (resetTokenData?.accessed) {
+      return res
+        .status(400)
+        .json({ message: "Token already accessed. The link is invalid" });
+    }
+
+    resetTokenData.accessed = true;
+    await resetTokenData.save();
+    res
+      .status(200)
+      .json({ message: "Token is valid. Proceed to reset your password" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    let user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const resetTokenData = new ResetToken({
+      userId: user._id,
+      token: resetToken,
+      createdAt: new Date(),
+    });
+
+    await resetTokenData.save();
+
+    const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
+    try {
+      await sendEmail(email, "ResetPassword", resetLink);
+    } catch (error) {
+      console.error("Email sending failed:", error);
+      return res.status(500).json({ message: "Failed to send reset email" });
+    }
+
+    res.status(200).json({ message: "Reset Link sent to your email" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: error.message || "Internal server error" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const resetTokenData = await ResetToken.findOne({ token });
+    if (!resetTokenData) {
+      return res.status(400).json({ message: "Invalid Token" });
+    }
+    if (resetTokenData?.used) {
+      return res.status(400).json({ message: "Token already used" });
+    }
+    if (resetTokenData.accessed === false) {
+      return res.status(400).json({
+        message: "Token not accessed. Please validate the token first",
+      });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded?.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.passwordUpdatedAt = new Date();
+    await user.save();
+
+    const passwordUpdateAt = user.passwordUpdateAt.getTime();
+    const tokenIssuedAt = decoded.iat * 1000;
+
+    if (passwordUpdateAt > tokenIssuedAt) {
+      return res
+        .status(401)
+        .json({
+          message: "Your password has been changed. Please log in again",
+        });
+    }
+    resetTokenData.used = true;
+    await resetTokenData.save();
+
+    const newToken = generateToken(user);
+    res
+      .status(200)
+      .json({ message: "Password reset successfully", token: newToken });
+  } catch (error) {
+    res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+    });
+  }
+};
+
 // Google OAuth
 exports.googleAuth = passport.authenticate("google", {
   scope: ["profile", "email"],
 });
 
 exports.googleCallback = (req, res, next) => {
-  passport.authenticate("google", (err, user) => {
+  passport.authenticate("google", async (err, user) => {
+    console.log("🔹 User from Google Callback:", user);
+
     if (err || !user) {
-      return res.redirect("/api/auth/failure");
+      console.error("🚨 Google Auth Error:", err);
+      return res.redirect(`${URL}/member/login`);
     }
 
-    const token = generateToken(user);
+    try {
+      if (!user._id) {
+        console.error("🚨 Error: User ID is missing:", user);
+        return res.redirect(`${URL}/member/login`);
+      }
 
-    res.redirect(`${process.env.WEB_SUCCESS_REDIRECT}?token=${token}`);
+      const token = await generateToken(user);
+      console.log("✅ Token Generated:", token);
+
+      res.redirect(`${URL}/member/type?token=${token}`);
+    } catch (error) {
+      console.error("❌ Error generating token:", error);
+      return res.redirect(`${URL}/member/login`);
+    }
   })(req, res, next);
 };
 
