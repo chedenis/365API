@@ -31,7 +31,7 @@ const authSchema = new mongoose.Schema(
     },
     passwordUpdatedAt: {
       type: Date,
-      default: Data.now
+      default: Date.now
     },
     googleId: {
       type: String,
