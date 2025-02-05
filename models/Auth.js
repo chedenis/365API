@@ -29,6 +29,10 @@ const authSchema = new mongoose.Schema(
       },
       minlength: [6, "Password must be at least 6 characters long"],
     },
+    passwordUpdatedAt: {
+      type: Date,
+      default: Data.now
+    },
     googleId: {
       type: String,
       unique: true,
