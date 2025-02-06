@@ -110,9 +110,9 @@ exports.login = (req, res, next) => {
 };
 
 exports.validateToken = async (req, res) => {
-  const { token } = req.params;
+  const { id } = req.params;
   try {
-    const resetTokenData = await ResetToken.findOne({ token });
+    const resetTokenData = await ResetToken.findOne({ token: id });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
@@ -138,7 +138,6 @@ exports.validateToken = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-
     let user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -157,15 +156,15 @@ exports.forgotPassword = async (req, res) => {
     const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
     try {
       await sendEmail(email, "ResetPassword", resetLink);
-   } catch (error) {
+    } catch (error) {
       console.error("Email sending failed:", error);
       return res.status(500).json({ message: "Failed to send reset email" });
-   }
+    }
 
     res.status(200).json({ message: "Reset Link sent to your email" });
   } catch (error) {
-    console.error("Forgot password error:", error)
-    res.status(500).json({ message: error.message ||"Internal server error" });
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: error.message || "Internal server error" });
   }
 };
 
@@ -192,12 +191,26 @@ exports.resetPassword = async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
+    user.passwordUpdatedAt = new Date();
     await user.save();
 
+    const passwordUpdateAt = user.passwordUpdateAt.getTime();
+    const tokenIssuedAt = decoded.iat * 1000;
+
+    if (passwordUpdateAt > tokenIssuedAt) {
+      return res
+        .status(401)
+        .json({
+          message: "Your password has been changed. Please log in again",
+        });
+    }
     resetTokenData.used = true;
     await resetTokenData.save();
 
-    res.status(200).json({ message: "Password reset successfully" });
+    const newToken = generateToken(user);
+    res
+      .status(200)
+      .json({ message: "Password reset successfully", token: newToken });
   } catch (error) {
     res.status(400).json({
       message:
