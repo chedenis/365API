@@ -110,9 +110,9 @@ exports.login = (req, res, next) => {
 };
 
 exports.validateToken = async (req, res) => {
-  const { token } = req.params;
+  const { id } = req.params;
   try {
-    const resetTokenData = await ResetToken.findOne({ token });
+    const resetTokenData = await ResetToken.findOne({ token: id });
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
