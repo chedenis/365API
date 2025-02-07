@@ -52,7 +52,14 @@ const clubSchema = new mongoose.Schema(
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
     reservationLink: { type: String, required: false },
-    dropInLink: { type: String, required: false },
+    dropInLink: { 
+      type: String, 
+      required: false, 
+      match: [
+        /^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}$/,
+        "Please provide a valid URL for drop-in hours"
+      ],
+    },
     membershipFee: { type: String, required: false },
     outdoorPlay: { type: Boolean, default: false },
     indoorPlay: { type: Boolean, default: false },
