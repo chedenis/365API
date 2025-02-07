@@ -61,6 +61,11 @@ const clubSchema = new mongoose.Schema(
       ],
     },
     membershipFee: { type: String, required: false },
+    membership: {
+      type: String,
+      enum: ['Auto-Renew', 'Cancelled'],
+      default: 'Auto-Renew',
+    },
     outdoorPlay: { type: Boolean, default: false },
     indoorPlay: { type: Boolean, default: false },
     clayCourts: { type: Boolean, default: false },
