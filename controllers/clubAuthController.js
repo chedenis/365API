@@ -165,13 +165,13 @@ exports.googleAuth = passport.authenticate("club-google", {
 });
 
 exports.googleCallback = (req, res, next) => {
-  passport.authenticate("club-google", async (err, clubAuth) => {
+  passport.authenticate("club-google", (err, clubAuth) => {
     if (err || !clubAuth) {
       console.error("Google auth failed:", err);
       // Please remove static credentials once we have updated the .env file correctly
       return res.redirect(`${URL}/club/login`);
     }
-    const token = await generateToken(clubAuth);
+    const token =  generateToken(clubAuth);
     console.log("Google Auth Successful, Redirecting with Token:", token);
     // Please remove static credentials once we have updated the .env file correctly
     res.redirect(`${URL}/club/type?token=${token}`);
