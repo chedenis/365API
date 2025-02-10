@@ -17,7 +17,7 @@ router.post("/create", clubAuthMiddleware, clubController.createClub);
 router.put("/update", clubAuthMiddleware, clubController.updateClub);
 
 // Promote PendingClub to Club (for the authenticated club)
-router.put("/promote/:id", clubController.promoteToClub);
+router.put("/promote/:id",clubAuthMiddleware, clubController.promoteToClub);
 
 // Delete Club or PendingClub (for the authenticated club)
 router.delete("/delete/:id", clubAuthMiddleware, clubController.deleteClub);
@@ -28,6 +28,8 @@ router.delete("/delete/:id", clubAuthMiddleware, clubController.deleteClub);
 router.get("/pending", clubController.listPendingClubs);
 // List all Clubs (public)
 router.get("/clubs", clubController.listClubs);
+
+router.patch("/cancel-membership", clubController.cancelMembership)
 
 router.post("/filteredList", clubController.filteredList);
 

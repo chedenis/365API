@@ -1,4 +1,6 @@
 const ContactUs = require("../models/ContactUs");
+const nodemailer = require("nodemailer");
+require('dotenv').config();
 
 exports.submitContactForm = async (req, res) => {
   try {
@@ -12,6 +14,30 @@ exports.submitContactForm = async (req, res) => {
     });
 
     await newContact.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: "info@365dink.com",
+      subject: "New Contact Form Submission",
+      html: `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone Number:</strong> ${phoneNumber || "N/A"}</p>
+      <p><strong>Message:</strong> ${message}</p>
+    `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
     res.status(201).json({ message: "Contact form submitted successfully" });
   } catch (error) {
     console.error("Error submitting contact form", error);
@@ -20,5 +46,3 @@ exports.submitContactForm = async (req, res) => {
       .json({ error: "Failed to submit contact form", details: error.message });
   }
 };
-
-

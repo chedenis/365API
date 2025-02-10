@@ -181,6 +181,16 @@ exports.updateClub = async (req, res) => {
     const updates = flattenUpdates(req.body);
     const { _id } = req.body;
     console.log(updates, "updatesupdates");
+
+    if (
+      updates?.dropInLink &&
+      !/^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}\/?.*/.test(updates?.dropInLink)
+    ) {
+      return res.status(400).json({
+        error: "Please provide a valid URL for drop-in hours",
+      });
+    }
+    
     if (
       updates?.memberPerk === "Treat like member" &&
       !updates?.membershipFee
@@ -253,6 +263,15 @@ exports.updateClub = async (req, res) => {
   }
 };
 
+const cleanUpInvalidValues = (club) => {
+  club.courtTypes = club.courtTypes.filter((type) =>
+    ["Outdoor", "Indoor", "Outdoor covered"].includes(type)
+  );
+  club.amenities = club.amenities.filter(
+    (amenity) => !["Covered courts", "Outdoor courts"].includes(amenity)
+  );
+};
+
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
   try {
@@ -262,6 +281,7 @@ exports.promoteToClub = async (req, res) => {
       return res.status(404).json({ error: "Club not found" });
     }
 
+    cleanUpInvalidValues(club)
     const fullAddress = `${club?.address?.street}, ${club?.address?.city}, ${club?.address?.state} ${club?.address?.zip}, ${club?.address?.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
@@ -304,7 +324,7 @@ exports.deleteClub = async (req, res) => {
       );
       await clubAuth.save();
     }
-    
+
     await Club.findByIdAndDelete(id);
     res.status(200).json({ message: "Club deleted successfully" });
   } catch (error) {
@@ -378,5 +398,31 @@ exports.listNotReadyClubs = async (req, res) => {
     res
       .status(500)
       .json({ error: "Error listing 'Not Ready' clubs", details: err.message });
+  }
+};
+
+exports.cancelMembership = async (req, res) => {
+  try {
+    const { _id, membership } = req.body;
+    if (membership && membership === "Cancelled") {
+      const club = await Club.findById(_id);
+      if (!club) {
+        return res.status(404).json({ error: "Club not found" });
+      }
+
+      club.membership === "Cancelled";
+      await club.save();
+
+      return res.status(200).json({
+        message: "Membership has been successfully cancelled",
+        club,
+      });
+      return res.status(400).json({ error: "Invalid membership status" });
+    }
+  } catch (error) {
+    console.error("Error cancelling membership", error);
+    res
+      .status(500)
+      .json({ error: "Error cancelling membership", details: error.message });
   }
 };
