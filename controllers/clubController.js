@@ -269,15 +269,15 @@ const cleanUpInvalidValues = (club) => {
   );
 
   club.amenities = club.amenities.filter(
-    (amenity) => !["Covered courts", "Outdoor courts"].includes(amenity)
+    (amenity) =>
+      ![
+        "Covered courts",
+        "Outdoor courts",
+        "Seating Area",
+        "Water fountain",
+        "Shaded Seating",
+      ].includes(amenity)
   );
-
-  club.amenities = club.amenities.map((amenity) => {
-    if (amenity === "Seating Area") return "Seating area";
-    if (amenity === "Water fountain") return "Water filling station";
-    if (amenity === "Shaded Seating") return "Shaded seating";
-    return amenity; // Keep other amenities as is
-  });
 };
 
 // Promote PendingClub to Club
