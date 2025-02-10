@@ -52,20 +52,8 @@ const clubSchema = new mongoose.Schema(
     dropInPlay: { type: Boolean, default: false },
     reservations: { type: Boolean, default: false },
     reservationLink: { type: String, required: false },
-    dropInLink: { 
-      type: String, 
-      required: false, 
-      match: [
-        /^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}$/,
-        "Please provide a valid URL for drop-in hours"
-      ],
-    },
+    dropInLink: { type: String, required: false },
     membershipFee: { type: String, required: false },
-    membership: {
-      type: String,
-      enum: ['Auto-Renew', 'Cancelled'],
-      default: 'Auto-Renew',
-    },
     outdoorPlay: { type: Boolean, default: false },
     indoorPlay: { type: Boolean, default: false },
     clayCourts: { type: Boolean, default: false },
@@ -262,4 +250,4 @@ if (process.env.NODE_ENV === "qa") {
 
 // Export the model with the dynamic name
 module.exports =
-  mongoose.models[modelName] || mongoose.model(modelName, clubSchema);
+  mongoose.models[modelName] || mon

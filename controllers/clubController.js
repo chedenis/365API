@@ -263,6 +263,15 @@ exports.updateClub = async (req, res) => {
   }
 };
 
+const cleanUpInvalidValues = (club) => {
+  club.courtTypes = club.courtTypes.filter((type) =>
+    ["Outdoor", "Indoor", "Outdoor covered"].includes(type)
+  );
+  club.amenities = club.amenities.filter(
+    (amenity) => !["Covered courts", "Outdoor courts"].includes(amenity)
+  );
+};
+
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
   try {
@@ -272,6 +281,7 @@ exports.promoteToClub = async (req, res) => {
       return res.status(404).json({ error: "Club not found" });
     }
 
+    cleanUpInvalidValues(club)
     const fullAddress = `${club?.address?.street}, ${club?.address?.city}, ${club?.address?.state} ${club?.address?.zip}, ${club?.address?.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
