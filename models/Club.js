@@ -250,4 +250,4 @@ if (process.env.NODE_ENV === "qa") {
 
 // Export the model with the dynamic name
 module.exports =
-  mongoose.models[modelName] || mon
+module.exports = mongoose.models[modelName] || mongoose.model(modelName, clubSchema);
