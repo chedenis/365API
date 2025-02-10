@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { ClubAuth, User } = require("../models");
+const { ClubAuth, User, Auth } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
