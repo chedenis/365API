@@ -51,9 +51,9 @@ exports.getLoginStatus = async (req, res) => {
 // Register a new user
 exports.register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, firstName, lastName } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
@@ -64,7 +64,7 @@ exports.register = async (req, res) => {
     }
 
     // Create the User
-    const newUser = new User({ email });
+    const newUser = new User({ email, firstName, lastName });
     await newUser.save();
 
     // Create the Auth record; pass plaintext password
@@ -79,7 +79,18 @@ exports.register = async (req, res) => {
     // Generate a token
     const token = await generateToken(newUser);
 
-    res.status(201).json({ message: "User registered successfully", token });
+    res
+      .status(201)
+      .json({
+        message: "User registered successfully",
+        token,
+        user: {
+          id: newUser._id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+        },
+      });
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
@@ -139,6 +150,7 @@ exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
     let user = await User.findOne({ email });
+    console.log("this is the user", user);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -198,11 +210,9 @@ exports.resetPassword = async (req, res) => {
     const tokenIssuedAt = decoded.iat * 1000;
 
     if (passwordUpdateAt > tokenIssuedAt) {
-      return res
-        .status(401)
-        .json({
-          message: "Your password has been changed. Please log in again",
-        });
+      return res.status(401).json({
+        message: "Your password has been changed. Please log in again",
+      });
     }
     resetTokenData.used = true;
     await resetTokenData.save();
