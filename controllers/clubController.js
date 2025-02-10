@@ -184,13 +184,13 @@ exports.updateClub = async (req, res) => {
 
     if (
       updates?.dropInLink &&
-      !/^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}$/.test(updates?.dropInLink)
+      !/^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}\/?.*/.test(updates?.dropInLink)
     ) {
       return res.status(400).json({
         error: "Please provide a valid URL for drop-in hours",
       });
     }
-
+    
     if (
       updates?.memberPerk === "Treat like member" &&
       !updates?.membershipFee
