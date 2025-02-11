@@ -1,8 +1,8 @@
 // utils/flattenUpdates.js
 const flattenUpdates = (updates) => {
   const flattened = {};
-
-  for (const key in updates) {
+-
+  for(const key in updates) {
     if (
       typeof updates[key] === "object" &&
       updates[key] !== null &&
