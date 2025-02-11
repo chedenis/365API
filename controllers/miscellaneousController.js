@@ -16,11 +16,15 @@ exports.submitContactForm = async (req, res) => {
     await newContact.save();
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      logger: true,
+      debug: true
     });
 
     const mailOptions = {
@@ -37,24 +41,6 @@ exports.submitContactForm = async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-
-
-    const testMailOptions = {
-      from: process.env.EMAIL_USER,
-      to: 'ndrhere550@gmail.com', 
-      subject: 'Test Email',
-      text: 'This is a test email from Nodemailer',
-    };
-
-    transporter.sendMail(testMailOptions, (err, info) => {
-      if (err) {
-        console.log('Error sending test email:', err);
-      } else {
-        console.log('Test email sent successfully:', info);
-      }
-    });
-
-    
 
     res.status(201).json({ message: "Contact form submitted successfully" });
   } catch (error) {
