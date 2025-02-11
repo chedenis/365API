@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
     default: "Inactive",
   },
   skillLevel: skillLevelSchema,
+  phone: { type: String, required: false },
+  gender: { type: String, enum:["Male", "Female", "Other"], required: false }
 });
 
 // Determine the model name based on the environment
