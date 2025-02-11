@@ -17,11 +17,14 @@ exports.submitContactForm = async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
       auth: {
         user: "ndx199@gmail.com",
         pass: "nyqajzvcrzhbinen",
+      },
+      tls: {
+        rejectUnauthorized: false, 
       },
     });
 
