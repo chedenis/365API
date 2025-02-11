@@ -20,15 +20,12 @@ exports.submitContactForm = async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: "nchawda@sigmasolve.com",
+        pass: "izsfzuisimhynfed",
       },
-      logger: true,
-      debug: true
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
       to: "info@365dink.com",
       subject: "New Contact Form Submission",
       html: `
