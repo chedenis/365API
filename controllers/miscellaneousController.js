@@ -29,7 +29,7 @@ exports.submitContactForm = async (req, res) => {
     });
 
     const mailOptions = {
-      to: "info@365dink.com",
+      to: "ndrhere550@gmail.com",
       subject: "New Contact Form Submission",
       html: `
       <h2>New Contact Form Submission</h2>
