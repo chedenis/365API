@@ -20,8 +20,8 @@ exports.submitContactForm = async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "nchawda@sigmasolve.com",
-        pass: "izsfzuisimhynfed",
+        user: "ndx199@gmail.com",
+        pass: "nyqajzvcrzhbinen",
       },
     });
 
