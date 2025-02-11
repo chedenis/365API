@@ -38,6 +38,24 @@ exports.submitContactForm = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
+
+    const testMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'ndrhere550@gmail.com', 
+      subject: 'Test Email',
+      text: 'This is a test email from Nodemailer',
+    };
+
+    transporter.sendMail(testMailOptions, (err, info) => {
+      if (err) {
+        console.log('Error sending test email:', err);
+      } else {
+        console.log('Test email sent successfully:', info);
+      }
+    });
+
+    
+
     res.status(201).json({ message: "Contact form submitted successfully" });
   } catch (error) {
     console.error("Error submitting contact form", error);
