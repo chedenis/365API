@@ -8,6 +8,7 @@ const {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  Type,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -264,21 +265,86 @@ exports.updateClub = async (req, res) => {
 };
 
 const cleanUpInvalidValues = (club) => {
-  club.courtTypes = club.courtTypes.filter((type) =>
-    ["Outdoor", "Indoor", "Outdoor covered"].includes(type)
+  const validAmenities = [
+    "Seating area",
+    "Water filling station",
+    "Restroom",
+    "Lockers",
+    "Showers",
+    "Ball machine",
+    "Tournaments",
+    "Clinics",
+    "Lessons",
+    "Open play",
+    "Round robin",
+    "Pro shop",
+    "Demo paddles",
+    "Paddles for purchase",
+    "Pickleballs for purchase",
+    "Clothing for purchase",
+    "Fitness classes",
+    "Indoor pool", // Present in current model
+    "Outdoor pool",
+    "Sauna",
+    "Hot tub",
+    "Tennis courts",
+    "Running track",
+    "Spa",
+    "Gym",
+    "Racquetball",
+    "Padel",
+    "Squash",
+    "Climbing wall",
+    "Restaurant",
+    "Vending machine",
+    "Bar",
+    "Snack bar",
+    "Childcare",
+    "Playground equipment",
+    "Indoor play area",
+    "On-site parking",
+    "Off-site parking",
+    "Covered parking",
+    "Street parking",
+  ];
+
+  club.amenities = club.amenities.filter((amenity) =>
+    validAmenities.includes(amenity)
   );
 
-  club.amenities = club.amenities.filter(
-    (amenity) =>
-      ![
-        "Covered courts",
-        "Outdoor courts",
-        "Seating Area",
-        "Water fountain",
-        "Shaded Seating",
-      ].includes(amenity)
+  const validCourtTypes = ["Outdoor", "Outdoor covered", "Indoor"];
+  club.courtTypes = club.courtTypes.filter((type) =>
+    validCourtTypes.includes(type)
   );
+
+  const validOtherActivities = [
+    "Fitness classes",
+    "Outdoor Pool",
+    "Sauna",
+    "Tennis courts",
+    "Indoor Pool",
+    "Running track",
+    "Basketball",
+    "Spa",
+    "Gym",
+    "Racquetball",
+    "Climbing wall",
+    "Squash",
+  ];
+
+  club.otherActivities = club.otherActivities.filter((activity) =>
+    validOtherActivities.includes(activity)
+  );
+
+  const validFoodBeverage = ["Restaurant", "Bar", "Vending machines", "Snack bar", "None"];
+
+  club.foodBeverage = club.foodBeverage.filter(food=>validFoodBeverage.includes(food))
+
+  const validParkingType = ["No designated parking", "On-site", "Off-site", "Covered", "Street parking"];
+
+  club.parkingType = club.parkingType.filter(type=> validParkingType.includes(type))
 };
+
 
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {

@@ -5,7 +5,7 @@ const { ClubAuth, User, Auth } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
-const sendEmail = require("../utils/mailer");
+const sendMail = require("../utils/nodemailer");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -167,7 +167,7 @@ exports.forgotPassword = async (req, res) => {
 
     const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
     try {
-      await sendEmail(email, "ResetPassword", resetLink);
+      await sendMail(email, "ResetPassword", resetLink);
     } catch (error) {
       console.error("Email sending failed:", error);
       return res.status(500).json({ message: "Failed to send reset email" });

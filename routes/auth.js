@@ -10,7 +10,7 @@ router.post("/login", AuthController.login);
 
 
 router.post("/forgot-password", AuthController.forgotPassword);
-router.get("/validate-token/:id", AuthController.validateToken);
+router.post("/validate-token/:id", AuthController.validateToken);
 router.post("/reset-password", AuthController.resetPassword);
 
 // Google OAuth routes
