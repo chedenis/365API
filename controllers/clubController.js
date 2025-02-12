@@ -283,7 +283,7 @@ const cleanUpInvalidValues = (club) => {
     "Pickleballs for purchase",
     "Clothing for purchase",
     "Fitness classes",
-    "Indoor pool", // Present in current model
+    "Indoor pool",
     "Outdoor pool",
     "Sauna",
     "Hot tub",
