@@ -183,13 +183,13 @@ exports.updateClub = async (req, res) => {
     const { _id } = req.body;
     console.log(updates, "updatesupdates");
 
-    if (updates?.memberBenefit === "Email only" && !updates?.email) {
+    if (updates?.memberBenefit?.email === "Email only" && !updates?.memberBenefit?.email) {
       return res
         .status(400)
         .json({ error: "Email is required when email only is selected" });
     }
 
-    if (updates.memberBenefit === "Phone only" && !updates?.phone) {
+    if (updates.memberBenefit?.phone === "Phone only" && !updates?.memberBenefits?.phone) {
       return res
         .status(400)
         .json({
