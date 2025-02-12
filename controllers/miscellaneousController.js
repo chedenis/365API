@@ -24,7 +24,7 @@ exports.submitContactForm = async (req, res) => {
   `;
 
     await sendMail(
-      "ndrhere550@gmail.com",
+      "info@365dink.com",
       "New Contact Form Submission",
       htmlContent
     );
