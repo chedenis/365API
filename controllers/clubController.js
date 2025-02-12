@@ -183,6 +183,20 @@ exports.updateClub = async (req, res) => {
     const { _id } = req.body;
     console.log(updates, "updatesupdates");
 
+    if (updates?.memberBenefit === "Email only" && !updates?.email) {
+      return res
+        .status(400)
+        .json({ error: "Email is required when email only is selected" });
+    }
+
+    if (updates.memberBenefit === "Phone only" && !updates?.phone) {
+      return res
+        .status(400)
+        .json({
+          error: "Phone number is required when 'Phone only' is selected",
+        });
+    }
+
     if (
       updates?.dropInLink &&
       !/^https?:\/\/[a-zA-Z0-9-_.]+\.[a-z]{2,}\/?.*/.test(updates?.dropInLink)
@@ -336,15 +350,30 @@ const cleanUpInvalidValues = (club) => {
     validOtherActivities.includes(activity)
   );
 
-  const validFoodBeverage = ["Restaurant", "Bar", "Vending machines", "Snack bar", "None"];
+  const validFoodBeverage = [
+    "Restaurant",
+    "Bar",
+    "Vending machines",
+    "Snack bar",
+    "None",
+  ];
 
-  club.foodBeverage = club.foodBeverage.filter(food=>validFoodBeverage.includes(food))
+  club.foodBeverage = club.foodBeverage.filter((food) =>
+    validFoodBeverage.includes(food)
+  );
 
-  const validParkingType = ["No designated parking", "On-site", "Off-site", "Covered", "Street parking"];
+  const validParkingType = [
+    "No designated parking",
+    "On-site",
+    "Off-site",
+    "Covered",
+    "Street parking",
+  ];
 
-  club.parkingType = club.parkingType.filter(type=> validParkingType.includes(type))
+  club.parkingType = club.parkingType.filter((type) =>
+    validParkingType.includes(type)
+  );
 };
-
 
 // Promote PendingClub to Club
 exports.promoteToClub = async (req, res) => {
