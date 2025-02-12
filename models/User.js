@@ -16,11 +16,11 @@ const userSchema = new mongoose.Schema({
   },
   skillLevel: skillLevelSchema,
   phone: { type: String, required: false },
-  gender: { type: String, enum:["Male", "Female", "Other"], required: false },
+  gender: { type: String, enum: ["Male", "Female", "Other"], required: false },
   memberBenefit: {
-    email: { type: string, required: false },
-    phone: { type: string, required: false }
-  }
+  email: { type: String, required: false },
+  phone: { type: String, required: false },
+  },
 });
 
 // Determine the model name based on the environment
