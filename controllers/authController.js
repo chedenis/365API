@@ -120,6 +120,7 @@ exports.login = (req, res, next) => {
   })(req, res, next);
 };
 
+
 exports.validateToken = async (req, res) => {
   const { id } = req.params;
   try {
@@ -195,7 +196,14 @@ exports.resetPassword = async (req, res) => {
         message: "Token not accessed. Please validate the token first",
       });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    try{
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, {ignoreExpiration: false});
+      console.log(decoded);
+    }catch(error){
+      console.error("Token verification failed", error.message)
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    
     const user = await User.findById(decoded?.id);
 
     if (!user) {
@@ -206,14 +214,14 @@ exports.resetPassword = async (req, res) => {
     user.passwordUpdatedAt = new Date();
     await user.save();
 
-    const passwordUpdateAt = user.passwordUpdateAt.getTime();
-    const tokenIssuedAt = decoded.iat * 1000;
+    // const passwordUpdateAt = user.passwordUpdateAt.getTime();
+    // const tokenIssuedAt = decoded.iat * 1000;
 
-    if (passwordUpdateAt > tokenIssuedAt) {
-      return res.status(401).json({
-        message: "Your password has been changed. Please log in again",
-      });
-    }
+    // if (passwordUpdateAt > tokenIssuedAt) {
+    //   return res.status(401).json({
+    //     message: "Your password has been changed. Please log in again",
+    //   });
+    // }
     resetTokenData.used = true;
     await resetTokenData.save();
 
@@ -222,9 +230,11 @@ exports.resetPassword = async (req, res) => {
       .status(200)
       .json({ message: "Password reset successfully", token: newToken });
   } catch (error) {
+    console.error(error)
     res.status(400).json({
       message:
         "The token has expired or is invalid. Please request a new password reset",
+        error: error.message
     });
   }
 };
