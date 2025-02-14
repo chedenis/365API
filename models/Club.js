@@ -62,7 +62,7 @@ const clubSchema = new mongoose.Schema(
     numberOfCourts: { type: Number, default: 0 },
     reservationSystem: {
       type: String,
-      enum: ["Court Reserve", "Picklepod", "Playbypoint", "Other", "None"],
+      enum: ["Court Reserve", "Picklepod", "Playbypoint", "Other", "None", "Email only", "Phone only"],
       default: "None",
     },
     courtReserveNumber: { type: String, required: false },
