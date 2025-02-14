@@ -1,3 +1,4 @@
+'use-strict'
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
@@ -6,6 +7,7 @@ const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 const sendMail = require("../utils/nodemailer");
+const mongoose = require('mongoose');
 
 // JWT helper function
 const generateToken = (user) => {
@@ -196,15 +198,27 @@ exports.resetPassword = async (req, res) => {
         message: "Token not accessed. Please validate the token first",
       });
     }
+    let decoded;
+
+
     try{
-      const decoded = jwt.verify(token, process.env.JWT_SECRET, {ignoreExpiration: false});
-      console.log(decoded);
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("decoded is", decoded);
     }catch(error){
       console.error("Token verification failed", error.message)
       return res.status(400).json({ message: "Invalid or expired token" });
     }
     
-    const user = await User.findById(decoded?.id);
+    console.log("Decoded ID:", decoded?.id);
+    console.log(typeof decoded?.id);
+
+    if (!decoded?.id || typeof decoded?.id !== 'string') {
+      return res.status(400).json({ message: "Invalid token ID" });
+    }
+
+    const userId = new mongoose.Types.ObjectId(decoded.id);
+
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
