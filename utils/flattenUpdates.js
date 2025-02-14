@@ -21,8 +21,9 @@ const flattenUpdates = (updates) => {
     }
   }
 
+
   // Keep your original logic for address
-  if (flattened.address && Object.keys(flattened.address).length === 0) {
+  if (flattened.address && typeof flattened.address === "object" && object.keys(flattened.address).length === 0) {
     delete flattened.address; // Remove empty address if present
   }
   return flattened;
