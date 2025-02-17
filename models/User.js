@@ -7,8 +7,8 @@ const userSchema = new mongoose.Schema({
   firstName: { type: String },
   lastName: { type: String },
   email: { type: String, required: true },
-  address: addressSchema,
-  memberId: {type: String, unique: true, required: true},
+  address: { type: addressSchema, required: false },
+  memberId: {type: String, unique: true, required: false},
   membershipStatus: {
     type: String,
     enum: ["Active", "Inactive", "Expired"],
