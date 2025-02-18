@@ -62,9 +62,43 @@ const clubSchema = new mongoose.Schema(
     numberOfCourts: { type: Number, default: 0 },
     reservationSystem: {
       type: String,
-      enum: ["Court Reserve", "Picklepod", "Playbypoint", "Other", "None", "Email only", "Phone only"],
+      enum: [
+        "Court Reserve",
+        "Picklepod",
+        "Playbypoint",
+        "Other",
+        "None",
+        "Email only",
+        "Phone only",
+      ],
       default: "None",
     },
+    reservationEmail: {
+      type: String,
+      validate: {
+        validator: function (v) {
+          if(this.reservationSystem === 'Email only') {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+          }
+          return true;
+        },
+        message: "Please enter a valid email address for reservations",
+      },
+    },
+
+    reservationPhone: {
+      type: String,
+      validate: {
+        validator: function (v) {
+          if (this.reservationSystem === 'Phone only') {
+            return /^[0-9]{10}$/.test(v);
+          }
+          return true
+        },
+        message: "Please enter a valid 10-digit phone number for reservations",
+      },
+    },
+
     courtReserveNumber: { type: String, required: false },
     shortDescription: { type: String, required: false },
     surfaceType: {
@@ -208,22 +242,22 @@ const clubSchema = new mongoose.Schema(
       required: false,
     },
     dropInHours: {
-      Monday: { type:[timeRangeSchema], required:false },
-      Tuesday: { type:[timeRangeSchema], required:false },
-      Wednesday: { type:[timeRangeSchema], required:false },
-      Thursday: { type:[timeRangeSchema], required:false },
-      Friday: { type:[timeRangeSchema], required:false },
-      Saturday: { type:[timeRangeSchema], required:false },
-      Sunday: { type:[timeRangeSchema], required:false },
+      Monday: { type: [timeRangeSchema], required: false },
+      Tuesday: { type: [timeRangeSchema], required: false },
+      Wednesday: { type: [timeRangeSchema], required: false },
+      Thursday: { type: [timeRangeSchema], required: false },
+      Friday: { type: [timeRangeSchema], required: false },
+      Saturday: { type: [timeRangeSchema], required: false },
+      Sunday: { type: [timeRangeSchema], required: false },
     },
     operatingHours: {
-      Monday: { type:[timeRangeSchema], required:false },
-      Tuesday: { type:[timeRangeSchema], required:false },
-      Wednesday: { type:[timeRangeSchema], required:false },
-      Thursday: { type:[timeRangeSchema], required:false },
-      Friday: { type:[timeRangeSchema], required:false },
-      Saturday: { type:[timeRangeSchema], required:false },
-      Sunday: { type:[timeRangeSchema], required:false },
+      Monday: { type: [timeRangeSchema], required: false },
+      Tuesday: { type: [timeRangeSchema], required: false },
+      Wednesday: { type: [timeRangeSchema], required: false },
+      Thursday: { type: [timeRangeSchema], required: false },
+      Friday: { type: [timeRangeSchema], required: false },
+      Saturday: { type: [timeRangeSchema], required: false },
+      Sunday: { type: [timeRangeSchema], required: false },
     },
     status: {
       type: String,
@@ -249,5 +283,5 @@ if (process.env.NODE_ENV === "qa") {
 }
 
 // Export the model with the dynamic name
-module.exports =
-module.exports = mongoose.models[modelName] || mongoose.model(modelName, clubSchema);
+module.exports = module.exports =
+  mongoose.models[modelName] || mongoose.model(modelName, clubSchema);
