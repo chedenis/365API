@@ -25,9 +25,9 @@ passport.use(
         // Log length of both strings
         console.log("Stored password length:", auth.password.length);
         console.log("Provided password length:", password.length);
-
+      
         // If password comparison still fails, check their actual values
-        const isMatch = await bcrypt.compare(password, auth.password);
+        const isMatch = bcrypt.compareSync(password.trim(), auth.password.trim());
 
         if (!isMatch) {
           console.log("Password mismatch!"); // Log if passwords don't match

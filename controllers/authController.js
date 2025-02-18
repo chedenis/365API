@@ -1,4 +1,3 @@
-'use-strict'
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
@@ -104,10 +103,13 @@ exports.login = (req, res, next) => {
   console.log("attempting login with email");
   console.log(req.body.email);
   passport.authenticate("local", (err, user, info) => {
+    console.log("Inside passport callback...")
     if (err) {
+      console.error("Authentication error", err)
       return next(err);
     }
     if (!user) {
+      console.log("User not found", info.message)
       return res.status(400).json({ error: info.message });
     }
 
@@ -218,15 +220,15 @@ exports.resetPassword = async (req, res) => {
 
     const userId = new mongoose.Types.ObjectId(decoded.id);
 
-    const user = await User.findById(userId);
+    const auth = await Auth.findOne({user:userId});
 
-    if (!user) {
+    if (!auth) {
       return res.status(404).json({ message: "User not found" });
     }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.passwordUpdatedAt = new Date();
-    await user.save();
+    
+    auth.password = newPassword;
+    auth.passwordUpdatedAt = new Date();
+    await auth.save();
 
     // const passwordUpdateAt = user.passwordUpdateAt.getTime();
     // const tokenIssuedAt = decoded.iat * 1000;
@@ -239,7 +241,7 @@ exports.resetPassword = async (req, res) => {
     resetTokenData.used = true;
     await resetTokenData.save();
 
-    const newToken = generateToken(user);
+    const newToken = generateToken(auth);
     res
       .status(200)
       .json({ message: "Password reset successfully", token: newToken });
@@ -252,6 +254,7 @@ exports.resetPassword = async (req, res) => {
     });
   }
 };
+
 
 // Google OAuth
 exports.googleAuth = passport.authenticate("google", {
