@@ -229,7 +229,6 @@ exports.resetPassword = async (req, res) => {
     auth.password = newPassword;
     auth.passwordUpdatedAt = new Date();
     await auth.save();
-
     // const passwordUpdateAt = user.passwordUpdateAt.getTime();
     // const tokenIssuedAt = decoded.iat * 1000;
 
