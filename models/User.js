@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String },
   email: { type: String, required: true },
   address: { type: addressSchema, required: false },
+  profile_picture: { type: String },
   memberId: {type: String, unique: true, required: false},
   membershipStatus: {
     type: String,

@@ -73,6 +73,7 @@ const clubSchema = new mongoose.Schema(
       ],
       default: "None",
     },
+    
     reservationEmail: {
       type: String,
       validate: {
