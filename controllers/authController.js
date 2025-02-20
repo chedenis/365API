@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { ClubAuth, User, Auth } = require("../models");
@@ -98,6 +99,67 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.googleMobileAuth = async (req, res) => {
+try{
+const { idToken } = req.body;
+
+if(!idToken){
+  return res.status(400).json({ error: "Id token is required"})
+}
+
+
+const ticket = await client.verifyIdToken({
+  idToken,
+  audience: process.env.GOOGLE_CLIENT_ID
+})
+
+const payload = ticket.getPayload();
+if(!payload){
+  return res.status(400).json({ error: "Invalid google token"})
+}
+// const googleResponse = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+
+const { email, sub: googleId, picture, name, given_name, family_name } = payload;
+
+if(!email){
+  return res.status(400).json({error: "Invalid google token"})
+}
+
+const firstName = given_name || (name? name.split(" ")[0] : "");
+const lastName = family_name || (name? name.split(" ").slice(1).join(" "): "");
+
+let user = await User.findOne({ email });
+
+if(!user) {
+  user = new User({
+    firstName,
+    lastName,
+    email,
+    googleId,
+    profileImage: picture,
+    socialType: "google"
+  });
+  await user.save()
+}else {
+  user.googleId = googleId;
+  user.socialType = "google";
+  await user.save()
+}
+
+const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+  expiresIn: "7d"
+})
+
+return res.json({
+  message: "Login successful",
+  token,
+  user
+})
+}catch (error) {
+  console.error("Google Mobile Auth Error", error);
+  return res.status(500).json({error: "Internal Server Error"})
+}
+}
 // Login with email and password
 exports.login = (req, res, next) => {
   console.log("attempting login with email");
@@ -123,7 +185,6 @@ exports.login = (req, res, next) => {
     });
   })(req, res, next);
 };
-
 
 exports.validateToken = async (req, res) => {
   const { id } = req.params;
