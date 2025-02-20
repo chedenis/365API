@@ -16,6 +16,7 @@ router.post("/reset-password", AuthController.resetPassword);
 // Google OAuth routes
 router.get("/google", AuthController.googleAuth);
 router.get("/google/callback", AuthController.googleCallback);
+router.post("/google-signin", AuthController.googleCallback);
 
 // Facebook OAuth routes
 router.get("/facebook", AuthController.facebookAuth);
