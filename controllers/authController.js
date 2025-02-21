@@ -7,7 +7,7 @@ const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 const sendMail = require("../utils/nodemailer");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -81,18 +81,16 @@ exports.register = async (req, res) => {
     // Generate a token
     const token = await generateToken(newUser);
 
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        token,
-        user: {
-          id: newUser._id,
-          email: newUser.email,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-        },
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+      },
+    });
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
@@ -100,78 +98,89 @@ exports.register = async (req, res) => {
 };
 
 exports.googleMobileAuth = async (req, res) => {
-try{
-const { idToken } = req.body;
+  try {
+    const { idToken } = req.body;
 
-if(!idToken){
-  return res.status(400).json({ error: "Id token is required"})
-}
+    if (!idToken) {
+      return res.status(400).json({ error: "Id token is required" });
+    }
 
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
 
-const ticket = await client.verifyIdToken({
-  idToken,
-  audience: process.env.GOOGLE_CLIENT_ID
-})
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ error: "Invalid google token" });
+    }
+    // const googleResponse = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
 
-const payload = ticket.getPayload();
-if(!payload){
-  return res.status(400).json({ error: "Invalid google token"})
-}
-// const googleResponse = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    const {
+      email,
+      sub: googleId,
+      picture,
+      name,
+      given_name,
+      family_name,
+    } = payload;
 
-const { email, sub: googleId, picture, name, given_name, family_name } = payload;
+    if (!email) {
+      return res.status(400).json({ error: "Invalid google token" });
+    }
 
-if(!email){
-  return res.status(400).json({error: "Invalid google token"})
-}
+    const firstName = given_name || (name ? name.split(" ")[0] : "");
+    const lastName =
+      family_name || (name ? name.split(" ").slice(1).join(" ") : "");
 
-const firstName = given_name || (name? name.split(" ")[0] : "");
-const lastName = family_name || (name? name.split(" ").slice(1).join(" "): "");
+    let user = await User.findOne({ email });
 
-let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        firstName,
+        lastName,
+        email,
+        googleId,
+        profileImage: picture,
+        socialType: "google",
+      });
+      await user.save();
+    } else {
+      user.googleId = googleId;
+      user.socialType = "google";
+      await user.save();
+    }
 
-if(!user) {
-  user = new User({
-    firstName,
-    lastName,
-    email,
-    googleId,
-    profileImage: picture,
-    socialType: "google"
-  });
-  await user.save()
-}else {
-  user.googleId = googleId;
-  user.socialType = "google";
-  await user.save()
-}
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
 
-const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
-  expiresIn: "7d"
-})
-
-return res.json({
-  message: "Login successful",
-  token,
-  user
-})
-}catch (error) {
-  console.error("Google Mobile Auth Error", error);
-  return res.status(500).json({error: "Internal Server Error"})
-}
-}
+    return res.json({
+      message: "Login successful",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Google Mobile Auth Error", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 // Login with email and password
 exports.login = (req, res, next) => {
   console.log("attempting login with email");
   console.log(req.body.email);
   passport.authenticate("local", (err, user, info) => {
-    console.log("Inside passport callback...")
+    console.log("Inside passport callback...");
     if (err) {
-      console.error("Authentication error", err)
+      console.error("Authentication error", err);
       return next(err);
     }
     if (!user) {
-      console.log("User not found", info.message)
+      console.log("User not found", info.message);
       return res.status(400).json({ error: info.message });
     }
 
@@ -263,30 +272,29 @@ exports.resetPassword = async (req, res) => {
     }
     let decoded;
 
-
-    try{
+    try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("decoded is", decoded);
-    }catch(error){
-      console.error("Token verification failed", error.message)
+    } catch (error) {
+      console.error("Token verification failed", error.message);
       return res.status(400).json({ message: "Invalid or expired token" });
     }
-    
+
     console.log("Decoded ID:", decoded?.id);
     console.log(typeof decoded?.id);
 
-    if (!decoded?.id || typeof decoded?.id !== 'string') {
+    if (!decoded?.id || typeof decoded?.id !== "string") {
       return res.status(400).json({ message: "Invalid token ID" });
     }
 
     const userId = new mongoose.Types.ObjectId(decoded.id);
 
-    const auth = await Auth.findOne({user:userId});
+    const auth = await Auth.findOne({ user: userId });
 
     if (!auth) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     auth.password = newPassword;
     auth.passwordUpdatedAt = new Date();
     await auth.save();
@@ -306,15 +314,14 @@ exports.resetPassword = async (req, res) => {
       .status(200)
       .json({ message: "Password reset successfully", token: newToken });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     res.status(400).json({
       message:
         "The token has expired or is invalid. Please request a new password reset",
-        error: error.message
+      error: error.message,
     });
   }
 };
-
 
 // Google OAuth
 exports.googleAuth = passport.authenticate("google", {
