@@ -9,6 +9,7 @@ const timeRangeSchema = new mongoose.Schema({
 const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
+    referralCode: { type: String, required: false, trim: true },
     progress: {
       type: [String],
       enum: [
