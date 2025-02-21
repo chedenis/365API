@@ -145,6 +145,9 @@ exports.createClub = async (req, res) => {
     const clubDetails = req.body;
     const email = req.user.email;
 
+    if(!req.user?.email){
+      return res.status(401).json({ error: "Unauthorized: user email not found"})
+    }
     console.log("Here is the user " + req.user);
     console.log("Received request to create club with details:", clubDetails);
 
@@ -179,7 +182,7 @@ exports.createClub = async (req, res) => {
 exports.updateClub = async (req, res) => {
   console.log("updateClub");
   try {
-    const updates = flattenUpdates(req.body);
+    const updates = flattenUpdates(req.body) || {};
     const { _id } = req.body;
     console.log(updates, "updatesupdates");
 
