@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
   address: { type: addressSchema, required: false },
   profile_picture: { type: String },
-  memberId: {type: String, unique: true, required: false},
+  memberId: {type: String, default: function() { return this._id.toString() }},
   membershipStatus: {
     type: String,
     enum: ["Active", "Inactive", "Expired"],
@@ -20,10 +20,10 @@ const userSchema = new mongoose.Schema({
   skillLevel: skillLevelSchema,
   phone: { type: String, required: false },
   gender: { type: String, enum: ["Male", "Female", "Other"], required: false },
-  memberBenefit: {
+  memberBenefit: new mongoose.Schema({
   email: { type: String, required: false },
   phone: { type: String, required: false },
-  },
+  }, { _id: false }),
 });
 
 // Determine the model name based on the environment

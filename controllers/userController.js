@@ -63,6 +63,10 @@ exports.getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
+    if (!user.memberId) {
+      user.memberId = user._id;
+      await user.save();
+    }
     res.status(200).json(user);
   } catch (err) {
     console.error("Error fetching user profile", err);
@@ -93,6 +97,11 @@ exports.updateUserProfile = async (req, res) => {
       const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
       updates.profile_picture = profilePicUrl;
     }
+
+    if (updates.memberId === null || updates.memberId === undefined) {
+      updates.memberId = req.user.id;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
