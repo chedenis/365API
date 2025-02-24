@@ -1,8 +1,7 @@
 // utils/flattenUpdates.js
 const flattenUpdates = (updates) => {
   const flattened = {};
-
-  for (const key in updates) {
+  for(const key in updates) {
     if (
       typeof updates[key] === "object" &&
       updates[key] !== null &&
@@ -22,8 +21,9 @@ const flattenUpdates = (updates) => {
     }
   }
 
+
   // Keep your original logic for address
-  if (flattened.address && Object.keys(flattened.address).length === 0) {
+  if (flattened.address && typeof flattened.address === "object" && Object.keys(flattened.address).length === 0) {
     delete flattened.address; // Remove empty address if present
   }
   return flattened;

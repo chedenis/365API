@@ -1,11 +1,13 @@
 const bcrypt = require("bcryptjs");
+const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { ClubAuth, User, Auth } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
-const sendEmail = require("../utils/mailer");
+const sendMail = require("../utils/nodemailer");
+const mongoose = require("mongoose");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -79,33 +81,106 @@ exports.register = async (req, res) => {
     // Generate a token
     const token = await generateToken(newUser);
 
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        token,
-        user: {
-          id: newUser._id,
-          email: newUser.email,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-        },
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+      },
+    });
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
   }
 };
 
+exports.googleMobileAuth = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ error: "Id token is required" });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ error: "Invalid google token" });
+    }
+    // const googleResponse = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+
+    const {
+      email,
+      sub: googleId,
+      picture,
+      name,
+      given_name,
+      family_name,
+    } = payload;
+
+    if (!email) {
+      return res.status(400).json({ error: "Invalid google token" });
+    }
+
+    const firstName = given_name || (name ? name.split(" ")[0] : "");
+    const lastName =
+      family_name || (name ? name.split(" ").slice(1).join(" ") : "");
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = new User({
+        firstName,
+        lastName,
+        email,
+        googleId,
+        profileImage: picture,
+        socialType: "google",
+      });
+      await user.save();
+    } else {
+      user.googleId = googleId;
+      user.socialType = "google";
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return res.json({
+      message: "Login successful",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Google Mobile Auth Error", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 // Login with email and password
 exports.login = (req, res, next) => {
   console.log("attempting login with email");
   console.log(req.body.email);
   passport.authenticate("local", (err, user, info) => {
+    console.log("Inside passport callback...");
     if (err) {
+      console.error("Authentication error", err);
       return next(err);
     }
     if (!user) {
+      console.log("User not found", info.message);
       return res.status(400).json({ error: info.message });
     }
 
@@ -165,9 +240,9 @@ exports.forgotPassword = async (req, res) => {
 
     await resetTokenData.save();
 
-    const resetLink = `${URL}/api/auth/reset-password?token=${resetToken}`;
+    const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
     try {
-      await sendEmail(email, "ResetPassword", resetLink);
+      await sendMail(email, "ResetPassword", resetLink);
     } catch (error) {
       console.error("Email sending failed:", error);
       return res.status(500).json({ message: "Failed to send reset email" });
@@ -195,36 +270,55 @@ exports.resetPassword = async (req, res) => {
         message: "Token not accessed. Please validate the token first",
       });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded?.id);
+    let decoded;
 
-    if (!user) {
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("decoded is", decoded);
+    } catch (error) {
+      console.error("Token verification failed", error.message);
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    console.log("Decoded ID:", decoded?.id);
+    console.log(typeof decoded?.id);
+
+    if (!decoded?.id || typeof decoded?.id !== "string") {
+      return res.status(400).json({ message: "Invalid token ID" });
+    }
+
+    const userId = new mongoose.Types.ObjectId(decoded.id);
+
+    const auth = await Auth.findOne({ user: userId });
+
+    if (!auth) {
       return res.status(404).json({ message: "User not found" });
     }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.passwordUpdatedAt = new Date();
-    await user.save();
 
-    const passwordUpdateAt = user.passwordUpdateAt.getTime();
-    const tokenIssuedAt = decoded.iat * 1000;
+    auth.password = newPassword;
+    auth.passwordUpdatedAt = new Date();
+    await auth.save();
+    // const passwordUpdateAt = user.passwordUpdateAt.getTime();
+    // const tokenIssuedAt = decoded.iat * 1000;
 
-    if (passwordUpdateAt > tokenIssuedAt) {
-      return res.status(401).json({
-        message: "Your password has been changed. Please log in again",
-      });
-    }
+    // if (passwordUpdateAt > tokenIssuedAt) {
+    //   return res.status(401).json({
+    //     message: "Your password has been changed. Please log in again",
+    //   });
+    // }
     resetTokenData.used = true;
     await resetTokenData.save();
 
-    const newToken = generateToken(user);
+    const newToken = generateToken(auth);
     res
       .status(200)
       .json({ message: "Password reset successfully", token: newToken });
   } catch (error) {
+    console.error(error);
     res.status(400).json({
       message:
         "The token has expired or is invalid. Please request a new password reset",
+      error: error.message,
     });
   }
 };
