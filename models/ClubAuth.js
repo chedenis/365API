@@ -23,6 +23,7 @@ const clubAuthSchema = new mongoose.Schema(
         message: (props) => `${props.value} is not a valid email address!`,
       },
     },
+    referralCode: { type: String, required: false, trim: true },
     password: {
       type: String,
       required: function () {

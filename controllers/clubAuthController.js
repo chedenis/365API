@@ -21,7 +21,7 @@ const generateToken = (clubAuth) => {
 
 // Local registration
 exports.registerClubAuth = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, referralCode } = req.body;
 
   try {
     const existingClubAuth = await ClubAuth.findOne({ email });
@@ -29,7 +29,7 @@ exports.registerClubAuth = async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    const newClubAuth = new ClubAuth({ email, password });
+    const newClubAuth = new ClubAuth({ email, password, referralCode });
     await newClubAuth.save();
 
     const token = generateToken(newClubAuth);
@@ -37,7 +37,7 @@ exports.registerClubAuth = async (req, res) => {
     res.status(201).json({
       message: "Club registered successfully",
       token,
-      clubAuth: { id: newClubAuth._id, email: newClubAuth.email },
+      clubAuth: { id: newClubAuth._id, email: newClubAuth.email, referralCode: newClubAuth.referralCode },
     });
   } catch (error) {
     console.error("Error registering club", error);
