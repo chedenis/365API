@@ -6,7 +6,7 @@ const {
   stripeWebhookHandler,
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/auth");
-const upload = require("../config/multerConfig");
+
 
 const router = express.Router();
 
