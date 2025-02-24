@@ -80,24 +80,6 @@ exports.updateUserProfile = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
 
-    if (req.file) {
-      const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${
-        req.file.originalname
-      }`;
-
-      const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-        ACL: "public-read",
-      };
-
-      await s3Client.send(new PutObjectCommand(params));
-      const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-      updates.profile_picture = profilePicUrl;
-    }
-
     if (updates.memberId === null || updates.memberId === undefined) {
       updates.memberId = req.user.id;
     }
