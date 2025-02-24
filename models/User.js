@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const addressSchema = require("./Address");
 const skillLevelSchema = require("./SkillLevel");
 
+
 const userSchema = new mongoose.Schema({
   firstName: { type: String },
   lastName: { type: String },
