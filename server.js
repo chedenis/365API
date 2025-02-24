@@ -11,13 +11,13 @@ const path = require("path");
 
 // Load environment variables
 dotenv.config();
+process.env.NODE_ENV = process.env.NODE_ENV || "development";
+const envFile =
+  process.env.NODE_ENV === "production"
+    ? ".env.production"
+    : ".env.development";
+dotenv.config({ path: envFile });
 
-if(process.env.NODE_ENV !== "producton"){
-  dotenv.config({ path: `env.${process.env.NODE_ENV || "development"}`})
-}
-
-console.log("AWS_REGION:", process.env.AWS_REGION);
-console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME);
 console.log(`Environment: ${process.env.NODE_ENV}`);
 console.log("Initializing database connection...");
 
