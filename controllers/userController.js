@@ -79,21 +79,19 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
-
     if (req.file) {
-      const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${
-        req.file.originalname
-      }`;
+      const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${req.file.originalname}`;
 
       const params = {
         Bucket: process.env.S3_BUCKET_NAME,
         Key: fileName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-        ACL: "public-read",
+        Body: req.file.buffer,   
+        ContentType: req.file.mimetype,  
+        ACL: "public-read",  
       };
 
-      await s3Client.send(new PutObjectCommand(params));
+      const s3Response = await s3Client.send(new PutObjectCommand(params));
+
       const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
       updates.profile_picture = profilePicUrl;
     }
@@ -116,11 +114,11 @@ exports.updateUserProfile = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // Return the updated user
     res.status(200).json(user);
   } catch (err) {
     console.error("Error updating user profile", err);
-    res
-      .status(500)
-      .json({ error: "Error updating user profile", details: err.message });
+    res.status(500).json({ error: "Error updating user profile", details: err.message });
   }
 };
+
