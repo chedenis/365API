@@ -144,9 +144,12 @@ exports.updateUserProfile = async (req, res) => {
 exports.generateMemberPresignedUrl = async (req, res) => {
   const { fileName, fileType } = req.body; // Expecting fileName and fileType in the request
 
+  const date = new Date();
+  const extension = fileName.split(".").pop();
+
   const params = {
     Bucket: bucketName, // S3 bucket name from environment
-    Key: fileName, // The name of the file to be uploaded
+    Key: `members_${+date}.${extension}`, // The name of the file to be uploaded
     ContentType: fileType, // File type (e.g., image/jpeg, image/png, etc.)
   };
 
