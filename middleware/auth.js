@@ -21,6 +21,7 @@ function authMiddleware(req, res, next) {
       }
 
       req.user = user; // Attach the authenticated user to the request
+      console.log("User details from Token", req.user)
       next(); // Proceed to the next middleware or route handler
     } catch (error) {
       console.error("Error in authMiddleware:", error);
