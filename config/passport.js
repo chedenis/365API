@@ -19,18 +19,13 @@ passport.use(
           });
         }
 
-        console.log("Stored hashed password in auth:", auth.password);
-        console.log("Comparing with plaintext password:", password);
-
-        // Log length of both strings
-        console.log("Stored password length:", auth.password.length);
-        console.log("Provided password length:", password.length);
-      
         // If password comparison still fails, check their actual values
-        const isMatch = bcrypt.compareSync(password.trim(), auth.password.trim());
+        const isMatch = bcrypt.compareSync(
+          password.trim(),
+          auth.password.trim()
+        );
 
         if (!isMatch) {
-          console.log("Password mismatch!"); // Log if passwords don't match
           return done(null, false, { message: "Incorrect password." });
         }
 
