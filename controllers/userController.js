@@ -95,11 +95,12 @@ exports.updateUserProfile = async (req, res) => {
     const updates = flattenUpdates(req.body);
 
     if (updates.memberId === null || updates.memberId === undefined) {
-      updates.memberId = req.user.id;
+      updates.memberId = req.user._id;
     }
 
+    console.log("Final updates before saving", updates);
     const user = await User.findByIdAndUpdate(
-      req.user.id,
+      req.user._id,
       { $set: updates },
       {
         new: true, // Return the updated document
@@ -112,8 +113,15 @@ exports.updateUserProfile = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("Updated user Data:", user);
     // Return the updated user
-    res.status(200).json(user);
+    res.status(200).json({
+      _id: user._id,
+      email: user.email,
+      membershipStatus: user.membershipStatus,
+      profile_picture: user.profile_picture || updates.profile_picture,
+      memberId: user.memberId,
+    });
   } catch (err) {
     console.error("Error updating user profile", err);
     res
@@ -143,27 +151,5 @@ exports.generateMemberPresignedUrl = async (req, res) => {
   } catch (err) {
     console.error("Error generating pre-signed URL", err);
     res.status(500).json({ error: "Error generating pre-signed URL" });
-  }
-};
-
-exports.generateMemberGetPresignedUrl = async (req, res) => {
-  const { fileUrl } = req.query;
-
-  const fileKey = fileUrl.replace(
-    `https://${bucketName}.s3.us-west-1.amazonaws.com/`,
-    ""
-  );
-  const params = {
-    Bucket: bucketName,
-    Key: fileKey,
-  };
-
-  try {
-    const command = new GetObjectCommand(params);
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
-    res.json({ url });
-  } catch (err) {
-    console.error("Error generating pre-signed GET URL", err);
-    res.status(500).json({ error: "Error generating pre-signed GET URL" });
   }
 };
