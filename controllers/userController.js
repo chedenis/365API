@@ -1,10 +1,24 @@
 // controllers/userController.js
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const s3Client = require("../config/s3Client");
+const {
+  PutObjectCommand,
+  S3Client,
+  GetObjectCommand,
+} = require("@aws-sdk/client-s3");
 const { User } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+const bucketName = process.env.S3_BUCKET_NAME;
 
 // Webhook handler to track completed sessions
 exports.stripeWebhookHandler = async (req, res) => {
@@ -79,29 +93,14 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
-    if (req.file) {
-      const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${req.file.originalname}`;
-
-      const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileName,
-        Body: req.file.buffer,   
-        ContentType: req.file.mimetype,  
-        ACL: "public-read",  
-      };
-
-      const s3Response = await s3Client.send(new PutObjectCommand(params));
-
-      const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-      updates.profile_picture = profilePicUrl;
-    }
 
     if (updates.memberId === null || updates.memberId === undefined) {
-      updates.memberId = req.user.id;
+      updates.memberId = req.user._id;
     }
 
+    console.log("Final updates before saving", updates);
     const user = await User.findByIdAndUpdate(
-      req.user.id,
+      req.user._id,
       { $set: updates },
       {
         new: true, // Return the updated document
@@ -114,11 +113,43 @@ exports.updateUserProfile = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("Updated user Data:", user);
     // Return the updated user
-    res.status(200).json(user);
+    res.status(200).json({
+      _id: user._id,
+      email: user.email,
+      membershipStatus: user.membershipStatus,
+      profile_picture: user.profile_picture || updates.profile_picture,
+      memberId: user.memberId,
+    });
   } catch (err) {
     console.error("Error updating user profile", err);
-    res.status(500).json({ error: "Error updating user profile", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Error updating user profile", details: err.message });
   }
 };
 
+exports.generateMemberPresignedUrl = async (req, res) => {
+  const { fileName, fileType } = req.body;
+
+  const date = new Date();
+  const extension = fileName.split(".").pop();
+
+  const params = {
+    Bucket: bucketName,
+    Key: `members_${+date}.${extension}`,
+    ContentType: fileType,
+  };
+
+  try {
+    const command = new PutObjectCommand(params);
+
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+
+    res.json({ url });
+  } catch (err) {
+    console.error("Error generating pre-signed URL", err);
+    res.status(500).json({ error: "Error generating pre-signed URL" });
+  }
+};
