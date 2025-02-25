@@ -145,25 +145,3 @@ exports.generateMemberPresignedUrl = async (req, res) => {
     res.status(500).json({ error: "Error generating pre-signed URL" });
   }
 };
-
-exports.generateMemberGetPresignedUrl = async (req, res) => {
-  const { fileUrl } = req.query;
-
-  const fileKey = fileUrl.replace(
-    `https://${bucketName}.s3.us-west-1.amazonaws.com/`,
-    ""
-  );
-  const params = {
-    Bucket: bucketName,
-    Key: fileKey,
-  };
-
-  try {
-    const command = new GetObjectCommand(params);
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
-    res.json({ url });
-  } catch (err) {
-    console.error("Error generating pre-signed GET URL", err);
-    res.status(500).json({ error: "Error generating pre-signed GET URL" });
-  }
-};
