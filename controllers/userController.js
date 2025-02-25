@@ -93,24 +93,6 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
-    // if (req.file) {
-    //   const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${
-    //     req.file.originalname
-    //   }`;
-
-    //   const params = {
-    //     Bucket: process.env.S3_BUCKET_NAME,
-    //     Key: fileName,
-    //     Body: req.file.buffer,
-    //     ContentType: req.file.mimetype,
-    //     ACL: "public-read",
-    //   };
-
-    //   const s3Response = await s3Client.send(new PutObjectCommand(params));
-
-    //   const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-    //   updates.profile_picture = profilePicUrl;
-    // }
 
     if (updates.memberId === null || updates.memberId === undefined) {
       updates.memberId = req.user.id;
@@ -140,27 +122,23 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
-// Generate a Pre-Signed URL for AWS S3 using v3 SDK
 exports.generateMemberPresignedUrl = async (req, res) => {
-  const { fileName, fileType } = req.body; // Expecting fileName and fileType in the request
+  const { fileName, fileType } = req.body;
 
   const date = new Date();
   const extension = fileName.split(".").pop();
 
   const params = {
-    Bucket: bucketName, // S3 bucket name from environment
-    Key: `members_${+date}.${extension}`, // The name of the file to be uploaded
-    ContentType: fileType, // File type (e.g., image/jpeg, image/png, etc.)
+    Bucket: bucketName,
+    Key: `members_${+date}.${extension}`,
+    ContentType: fileType,
   };
 
   try {
-    // Create the command for putting the object
     const command = new PutObjectCommand(params);
 
-    // Generate the pre-signed URL with a 60-second expiration
     const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
 
-    // Send the pre-signed URL in the response
     res.json({ url });
   } catch (err) {
     console.error("Error generating pre-signed URL", err);
