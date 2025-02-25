@@ -4,9 +4,10 @@ const {
   getUserProfile,
   updateUserProfile,
   stripeWebhookHandler,
+  generateMemberPresignedUrl,
+  generateMemberGetPresignedUrl,
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/auth");
-
 
 const router = express.Router();
 
@@ -17,5 +18,8 @@ router.patch("/profile", authMiddleware, updateUserProfile);
 //   express.raw({ type: "application/json" }), // Required for stripe webhook
 //   stripeWebhookHandler
 // );
+
+router.post("/generate-upload-url", authMiddleware, generateMemberPresignedUrl);
+router.get("/generate-get-url", authMiddleware, generateMemberGetPresignedUrl);
 
 module.exports = router;

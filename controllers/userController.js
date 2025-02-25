@@ -1,10 +1,24 @@
 // controllers/userController.js
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const s3Client = require("../config/s3Client");
+const {
+  PutObjectCommand,
+  S3Client,
+  GetObjectCommand,
+} = require("@aws-sdk/client-s3");
 const { User } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+const bucketName = process.env.S3_BUCKET_NAME;
 
 // Webhook handler to track completed sessions
 exports.stripeWebhookHandler = async (req, res) => {
@@ -79,22 +93,24 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const updates = flattenUpdates(req.body);
-    if (req.file) {
-      const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${req.file.originalname}`;
+    // if (req.file) {
+    //   const fileName = `profile_pictures/${req.user.id}_${Date.now()}_${
+    //     req.file.originalname
+    //   }`;
 
-      const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileName,
-        Body: req.file.buffer,   
-        ContentType: req.file.mimetype,  
-        ACL: "public-read",  
-      };
+    //   const params = {
+    //     Bucket: process.env.S3_BUCKET_NAME,
+    //     Key: fileName,
+    //     Body: req.file.buffer,
+    //     ContentType: req.file.mimetype,
+    //     ACL: "public-read",
+    //   };
 
-      const s3Response = await s3Client.send(new PutObjectCommand(params));
+    //   const s3Response = await s3Client.send(new PutObjectCommand(params));
 
-      const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-      updates.profile_picture = profilePicUrl;
-    }
+    //   const profilePicUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    //   updates.profile_picture = profilePicUrl;
+    // }
 
     if (updates.memberId === null || updates.memberId === undefined) {
       updates.memberId = req.user.id;
@@ -118,7 +134,55 @@ exports.updateUserProfile = async (req, res) => {
     res.status(200).json(user);
   } catch (err) {
     console.error("Error updating user profile", err);
-    res.status(500).json({ error: "Error updating user profile", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Error updating user profile", details: err.message });
   }
 };
 
+// Generate a Pre-Signed URL for AWS S3 using v3 SDK
+exports.generateMemberPresignedUrl = async (req, res) => {
+  const { fileName, fileType } = req.body; // Expecting fileName and fileType in the request
+
+  const params = {
+    Bucket: bucketName, // S3 bucket name from environment
+    Key: `members/${fileName}`, // The name of the file to be uploaded
+    ContentType: fileType, // File type (e.g., image/jpeg, image/png, etc.)
+  };
+
+  try {
+    // Create the command for putting the object
+    const command = new PutObjectCommand(params);
+
+    // Generate the pre-signed URL with a 60-second expiration
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+
+    // Send the pre-signed URL in the response
+    res.json({ url });
+  } catch (err) {
+    console.error("Error generating pre-signed URL", err);
+    res.status(500).json({ error: "Error generating pre-signed URL" });
+  }
+};
+
+exports.generateMemberGetPresignedUrl = async (req, res) => {
+  const { fileUrl } = req.query;
+
+  const fileKey = fileUrl.replace(
+    `https://${bucketName}.s3.us-west-1.amazonaws.com/`,
+    ""
+  );
+  const params = {
+    Bucket: bucketName,
+    Key: fileKey,
+  };
+
+  try {
+    const command = new GetObjectCommand(params);
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    res.json({ url });
+  } catch (err) {
+    console.error("Error generating pre-signed GET URL", err);
+    res.status(500).json({ error: "Error generating pre-signed GET URL" });
+  }
+};
