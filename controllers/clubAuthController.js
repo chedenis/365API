@@ -37,7 +37,11 @@ exports.registerClubAuth = async (req, res) => {
     res.status(201).json({
       message: "Club registered successfully",
       token,
-      clubAuth: { id: newClubAuth._id, email: newClubAuth.email, referralCode: newClubAuth.referralCode },
+      clubAuth: {
+        id: newClubAuth._id,
+        email: newClubAuth.email,
+        referralCode: newClubAuth.referralCode,
+      },
     });
   } catch (error) {
     console.error("Error registering club", error);
@@ -115,7 +119,7 @@ exports.forgotPassword = async (req, res, next) => {
     await resetTokenData.save();
     // Please remove static credentials once we have updated the .env file correctly
     const resetLink = `${URL}/club/reset-password?token=${resetToken}`;
-    await sendEmail(email, "Reset Password", resetLink);
+    await sendEmail(email, "Reset Password", resetLink, "club");
     res.status(200).json({ message: "Reset link sent to your email" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
@@ -171,7 +175,7 @@ exports.googleCallback = (req, res, next) => {
       // Please remove static credentials once we have updated the .env file correctly
       return res.redirect(`${URL}/club/login`);
     }
-    const token =  generateToken(clubAuth);
+    const token = generateToken(clubAuth);
     console.log("Google Auth Successful, Redirecting with Token:", token);
     // Please remove static credentials once we have updated the .env file correctly
     res.redirect(`${URL}/club/type?token=${token}`);
