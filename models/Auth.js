@@ -31,7 +31,7 @@ const authSchema = new mongoose.Schema(
     },
     passwordUpdatedAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     googleId: {
       type: String,
@@ -43,6 +43,7 @@ const authSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    otp: { type: String, required: false },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref:

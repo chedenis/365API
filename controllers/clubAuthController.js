@@ -1,9 +1,10 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const { ClubAuth } = require("../models");
-const sendEmail = require("../utils/mailer");
 const bcrypt = require("bcryptjs");
 const { ResetToken } = require("../models");
+const { sendEmailOTP, sendEmail } = require("../utils/mailer");
+const generateOTP = require("../utils/otp");
 
 const URL = process.env.FRONTEND_URL;
 
@@ -103,26 +104,56 @@ exports.validateToken = async (req, res) => {
 
 // Forgot Password
 exports.forgotPassword = async (req, res, next) => {
-  const { email } = req.body;
-
   try {
-    const user = await ClubAuth.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    const resetToken = jwt.sign({ id: user?._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const { email, isMobile } = req.body;
+    const getOtp = await generateOTP();
+    if (isMobile) {
+      let clubAuth = await ClubAuth.findOne({ email });
 
-    const resetTokenData = new ResetToken({
-      userId: user?._id,
-      token: resetToken,
-    });
-    await resetTokenData.save();
-    // Please remove static credentials once we have updated the .env file correctly
-    const resetLink = `${URL}/club/reset-password?token=${resetToken}`;
-    await sendEmail(email, "Reset Password", resetLink, "club");
-    res.status(200).json({ message: "Reset link sent to your email" });
+      if (!clubAuth) return res.status(404).json({ message: "User not found" });
+
+      await ClubAuth.findByIdAndUpdate(clubAuth._id, { otp: `${getOtp}` });
+
+      const generateToken = jwt.sign(
+        { id: clubAuth._id },
+        process.env.JWT_SECRET_OTP_CLUB,
+        {
+          expiresIn: "10m",
+        }
+      );
+      try {
+        await sendEmailOTP(email, "ResetPasswordOtp", getOtp, "member");
+      } catch (error) {
+        console.error("Email sending failed:", error);
+        return res.status(500).json({
+          message: "Failed to send reset email",
+        });
+      }
+
+      res.status(200).json({
+        message: "OTP sent to your email",
+        token: generateToken,
+        otp: getOtp,
+      });
+    } else {
+      const user = await ClubAuth.findOne({ email });
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const resetToken = jwt.sign({ id: user?._id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
+
+      const resetTokenData = new ResetToken({
+        userId: user?._id,
+        token: resetToken,
+      });
+      await resetTokenData.save();
+      // Please remove static credentials once we have updated the .env file correctly
+      const resetLink = `${URL}/club/reset-password?token=${resetToken}`;
+      await sendEmail(email, "Reset Password", resetLink, "club");
+      res.status(200).json({ message: "Reset link sent to your email" });
+    }
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -159,6 +190,31 @@ exports.resetPassword = async (req, res, next) => {
     res.status(400).json({
       message:
         "The token has expired or is invalid. Please request a new password reset",
+    });
+  }
+};
+
+exports.resetPasswordMobile = async (req, res) => {
+  const user = req.user;
+
+  const { otp, newPassword } = req.body;
+  try {
+    if (user.otp != otp) {
+      return res.status(404).json({ message: "Invalid OTP" });
+    }
+
+    user.otp = "";
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+      error: error.message,
     });
   }
 };
