@@ -313,23 +313,15 @@ exports.resetPassword = async (req, res) => {
 
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("decoded is", decoded);
     } catch (error) {
-      console.error("Token verification failed", error.message);
       return res.status(400).json({ message: "Invalid or expired token" });
     }
-
-    console.log("Decoded ID:", decoded?.id);
-    console.log(typeof decoded?.id);
 
     if (!decoded?.id || typeof decoded?.id !== "string") {
       return res.status(400).json({ message: "Invalid token ID" });
     }
 
-    const userId = new mongoose.Types.ObjectId(decoded.id);
-
-    const auth = await Auth.findOne({ user: userId });
-    console.log(auth, "authauthauthauth");
+    const auth = await Auth.findById(decoded?.id);
     if (!auth) {
       return res.status(404).json({ message: "User not found" });
     }
