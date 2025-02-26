@@ -145,8 +145,10 @@ exports.createClub = async (req, res) => {
     const clubDetails = req.body;
     const email = req.user.email;
 
-    if(!req.user?.email){
-      return res.status(401).json({ error: "Unauthorized: user email not found"})
+    if (!req.user?.email) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: user email not found" });
     }
     console.log("Here is the user " + req.user);
     console.log("Received request to create club with details:", clubDetails);
@@ -186,18 +188,22 @@ exports.updateClub = async (req, res) => {
     const { _id } = req.body;
     console.log(updates, "updatesupdates");
 
-    if (updates?.memberBenefit?.email === "Email only" && !updates?.memberBenefit?.email) {
+    if (
+      updates?.memberBenefit?.email === "Email only" &&
+      !updates?.memberBenefit?.email
+    ) {
       return res
         .status(400)
         .json({ error: "Email is required when email only is selected" });
     }
 
-    if (updates.memberBenefit?.phone === "Phone only" && !updates?.memberBenefit?.phone) {
-      return res
-        .status(400)
-        .json({
-          error: "Phone number is required when 'Phone only' is selected",
-        });
+    if (
+      updates.memberBenefit?.phone === "Phone only" &&
+      !updates?.memberBenefit?.phone
+    ) {
+      return res.status(400).json({
+        error: "Phone number is required when 'Phone only' is selected",
+      });
     }
 
     if (

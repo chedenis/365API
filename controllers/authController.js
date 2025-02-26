@@ -9,6 +9,7 @@ const URL = process.env.FRONTEND_URL;
 const mongoose = require("mongoose");
 const generateOTP = require("../utils/otp");
 const { sendEmail, sendEmailOTP } = require("../utils/mailer");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // JWT helper function
 const generateToken = (user) => {
@@ -135,21 +136,29 @@ exports.googleMobileAuth = async (req, res) => {
       family_name || (name ? name.split(" ").slice(1).join(" ") : "");
 
     let user = await User.findOne({ email });
+    let auth = await Auth.findOne({ email });
 
     if (!user) {
       user = new User({
         firstName,
         lastName,
         email,
-        googleId,
-        profileImage: picture,
-        socialType: "google",
+        profile_picture: picture,
       });
+      if (!auth) {
+        const auth = await new Auth({
+          email,
+          googleId,
+          socialType: "google",
+          user: user?._id,
+        });
+        await auth.save();
+      }
       await user.save();
     } else {
-      user.googleId = googleId;
-      user.socialType = "google";
-      await user.save();
+      auth.googleId = googleId;
+      auth.socialType = "google";
+      await auth.save();
     }
 
     const token = jwt.sign(
