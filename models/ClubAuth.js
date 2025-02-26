@@ -41,6 +41,7 @@ const clubAuthSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    otp: { type: String, required: false },
     clubs: [
       {
         type: mongoose.Schema.Types.ObjectId,

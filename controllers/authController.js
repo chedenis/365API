@@ -6,8 +6,9 @@ const { ClubAuth, User, Auth } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
-const sendEmail = require("../utils/mailer");
 const mongoose = require("mongoose");
+const generateOTP = require("../utils/otp");
+const { sendEmail, sendEmailOTP } = require("../utils/mailer");
 
 // JWT helper function
 const generateToken = (user) => {
@@ -222,36 +223,65 @@ exports.validateToken = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const { email, isMobile } = req.body;
   try {
-    let user = await User.findOne({ email });
-    console.log("this is the user", user);
+    let user = await Auth.findOne({ email });
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const getOtp = await generateOTP();
+    if (isMobile) {
+      await Auth.findByIdAndUpdate(user._id, { otp: `${getOtp}` });
 
-    const resetTokenData = new ResetToken({
-      userId: user._id,
-      token: resetToken,
-      createdAt: new Date(),
-    });
+      const generateToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET_OTP_MEMBER,
+        {
+          expiresIn: "10m",
+        }
+      );
+      try {
+        await sendEmailOTP(email, "ResetPasswordOtp", getOtp, "member");
+      } catch (error) {
+        console.error("Email sending failed:", error);
+        return res.status(500).json({
+          message: "Failed to send reset email",
+        });
+      }
 
-    await resetTokenData.save();
+      res.status(200).json({
+        message: "OTP sent to your email",
+        token: generateToken,
+        otp: getOtp,
+      });
+    } else {
+      const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
 
-    const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
-    try {
-      await sendEmail(email, "ResetPassword", resetLink, "member");
-    } catch (error) {
-      console.error("Email sending failed:", error);
-      return res.status(500).json({ message: "Failed to send reset email" });
+      const resetTokenData = new ResetToken({
+        userId: user._id,
+        token: resetToken,
+        createdAt: new Date(),
+      });
+
+      await resetTokenData.save();
+
+      const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
+      try {
+        await sendEmail(email, "ResetPassword", resetLink, "member");
+      } catch (error) {
+        console.error("Email sending failed:", error);
+        return res.status(500).json({ message: "Failed to send reset email" });
+      }
+
+      return res.status(200).json({ message: "Reset Link sent to your email" });
     }
-
-    res.status(200).json({ message: "Reset Link sent to your email" });
   } catch (error) {
     console.error("Forgot password error:", error);
-    res.status(500).json({ message: error.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
 
@@ -315,6 +345,31 @@ exports.resetPassword = async (req, res) => {
       .json({ message: "Password reset successfully", token: newToken });
   } catch (error) {
     res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+      error: error.message,
+    });
+  }
+};
+
+exports.resetPasswordMobile = async (req, res) => {
+  const user = req.user;
+  const { otp, newPassword } = req.body;
+
+  try {
+    if (user.otp != otp) {
+      return res.status(404).json({ message: "Invalid OTP" });
+    }
+
+    user.otp = "";
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    return res.status(400).json({
       message:
         "The token has expired or is invalid. Please request a new password reset",
       error: error.message,
