@@ -9,7 +9,7 @@ const timeRangeSchema = new mongoose.Schema({
 const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
-    
+
     progress: {
       type: [String],
       enum: [
@@ -74,12 +74,12 @@ const clubSchema = new mongoose.Schema(
       ],
       default: "None",
     },
-    
+
     reservationEmail: {
       type: String,
       validate: {
         validator: function (v) {
-          if(this.reservationSystem === 'Email only') {
+          if (this.reservationSystem === "Email only") {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
           }
           return true;
@@ -92,10 +92,10 @@ const clubSchema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
-          if (this.reservationSystem === 'Phone only') {
+          if (this.reservationSystem === "Phone only") {
             return /^[0-9]{10}$/.test(v);
           }
-          return true
+          return true;
         },
         message: "Please enter a valid 10-digit phone number for reservations",
       },
@@ -266,6 +266,9 @@ const clubSchema = new mongoose.Schema(
       enum: ["Not Ready", "Ready", "Complete"],
       default: "Not Ready",
     },
+    instagramUrl: { type: String, required: false },
+    facebookUrl: { type: String, required: false },
+    isUpdate: { type: Boolean, required: false, default: false },
   },
   {
     timestamps: true,
