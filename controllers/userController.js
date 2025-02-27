@@ -115,13 +115,7 @@ exports.updateUserProfile = async (req, res) => {
 
     console.log("Updated user Data:", user);
     // Return the updated user
-    res.status(200).json({
-      _id: user._id,
-      email: user.email,
-      membershipStatus: user.membershipStatus,
-      profile_picture: user.profile_picture || updates.profile_picture,
-      memberId: user.memberId,
-    });
+    res.status(200).json({ ...user._doc });
   } catch (err) {
     console.error("Error updating user profile", err);
     res
