@@ -90,15 +90,15 @@ const clubSchema = new mongoose.Schema(
 
     reservationPhone: {
       type: String,
-      validate: {
-        validator: function (v) {
-          if (this.reservationSystem === "Phone only") {
-            return /^[0-9]{10}$/.test(v);
-          }
-          return true;
-        },
-        message: "Please enter a valid 10-digit phone number for reservations",
-      },
+      // validate: {
+      //   validator: function (v) {
+      //     if (this.reservationSystem === "Phone only") {
+      //       return /^[0-9]{10}$/.test(v);
+      //     }
+      //     return true;
+      //   },
+      //   message: "Please enter a valid 10-digit phone number for reservations",
+      // },
     },
 
     courtReserveNumber: { type: String, required: false },
