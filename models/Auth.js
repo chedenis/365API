@@ -44,7 +44,7 @@ const authSchema = new mongoose.Schema(
       sparse: true,
     },
     otp: { type: String, required: false },
-    socialType: { type: String, required: false }, // googleId
+    socialType: { type: String, required: false }, // google
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref:
