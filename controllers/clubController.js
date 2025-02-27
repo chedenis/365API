@@ -241,6 +241,31 @@ exports.updateClub = async (req, res) => {
       });
     }
 
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    if (updates?.reservationSystem === "Email only") {
+      if (!updates?.reservationEmail) {
+        return res.status(400).json({
+          error: "Email is required when Reservation system is email",
+        });
+      }
+      if (!validateEmail(updates.reservationEmail)) {
+        return res
+          .status(400)
+          .json({ error: "Please provide a valid email address" });
+      }
+    }
+
+    if (updates?.reservationSystem === "Phone only") {
+      if (!updates?.reservationPhone) {
+        return res.status(400).json({
+          error: "Phone number is required when Reservation system is phone",
+        });
+      }
+    }
+
     const existingClub = await Club.findOne({ _id });
 
     if (!existingClub) {
