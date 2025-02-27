@@ -182,11 +182,9 @@ exports.createClub = async (req, res) => {
 
 // Update a Club
 exports.updateClub = async (req, res) => {
-  console.log("updateClub");
   try {
     const updates = flattenUpdates(req.body) || {};
     const { _id } = req.body;
-    console.log(updates, "updatesupdates");
 
     if (
       updates?.memberBenefit?.email === "Email only" &&

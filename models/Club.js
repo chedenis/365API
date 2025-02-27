@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const addressSchema = require("./Address");
+const addressSchemaClub = require("./AddressClub");
 
 const timeRangeSchema = new mongoose.Schema({
   startTime: { type: String, required: true },
@@ -22,8 +22,8 @@ const clubSchema = new mongoose.Schema(
       ],
       default: [],
     },
-    address: { type: addressSchema, required: false },
-    mailingAddress: { type: addressSchema, required: false },
+    address: { type: addressSchemaClub, required: false },
+    mailingAddress: { type: addressSchemaClub, required: false },
     memberPerk: {
       type: String,
       enum: ["50% off", "Treat like member"],
