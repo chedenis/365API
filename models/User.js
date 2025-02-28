@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
   membershipExpiry: { type: Date },
   skillLevel: skillLevelSchema,
   phone: { type: String, required: false },
+  stripeCustomerId: { type: String, required: false },
   gender: { type: String, enum: ["Male", "Female", "Other"], required: false },
   memberBenefit: new mongoose.Schema(
     {

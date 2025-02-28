@@ -4,11 +4,16 @@ const {
   S3Client,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
-const { User } = require("../models");
+const { User, MemberShip } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const createOrUpdateCustomer = require("../helper/stripe/create-update-customer");
+const handleCheckoutSessionCompleted = require("../utils/stripe/checkout-session");
+const handleInvoicePaymentFailed = require("../utils/stripe/invoice-failed");
+const handleSubscriptionUpdated = require("../utils/stripe/update-subscription");
+const handleInvoicePaid = require("../utils/stripe/invoice-paid");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -47,22 +52,51 @@ exports.stripeWebhookHandler = async (req, res) => {
       const session = event.data.object;
       const userId = session.client_reference_id;
 
-      if (userId) {
-        try {
-          // Update user's membership status in the database
-          await User.findOneAndUpdate(
-            { _id: userId },
-            { membershipStatus: "Active" }
-          );
-          console.log(`User ${userId} membership status updated to Active.`);
-        } catch (dbError) {
-          console.error("Database update error:", dbError.message);
-          return res.status(500).send("Database error");
-        }
-      } else {
-        console.log("No client_reference_id found in session.");
-      }
+      // if (userId) {
+      //   try {
+      //     // Update user's membership status in the database
+      //     await User.findOneAndUpdate(
+      //       { _id: userId },
+      //       { membershipStatus: "Active" }
+      //     );
+      //     console.log(`User ${userId} membership status updated to Active.`);
+      //   } catch (dbError) {
+      //     console.error("Database update error:", dbError.message);
+      //     return res.status(500).send("Database error");
+      //   }
+      // } else {
+      //   console.log("No client_reference_id found in session.");
+      // }
+      await handleCheckoutSessionCompleted(session);
       break;
+
+    case "invoice.paid": {
+      const invoice = event.data.object;
+
+      await handleInvoicePaid(invoice);
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object;
+
+      await handleInvoicePaymentFailed(invoice);
+      break;
+    }
+
+    case "customer.subscription.updated": {
+      const subscription = event.data.object;
+      // Handle subscription changes
+      await handleSubscriptionUpdated(subscription);
+      break;
+    }
+
+    case "customer.subscription.deleted": {
+      const subscription = event.data.object;
+      // Handle subscription cancellation
+      await handleSubscriptionDeleted(subscription);
+      break;
+    }
 
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -99,6 +133,18 @@ exports.updateUserProfile = async (req, res) => {
     }
 
     console.log("Final updates before saving", updates);
+
+    const stripeCustomerData = await createOrUpdateCustomer({
+      firstName: updates?.firstName,
+      lastName: updates?.lastName || "Unknown",
+      email: updates?.email,
+      customerId: req?.user?.stripeCustomerId || null,
+    });
+
+    if (stripeCustomerData?.status) {
+      updates.stripeCustomerId = stripeCustomerData?.customerId;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: updates },
