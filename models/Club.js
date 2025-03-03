@@ -269,6 +269,19 @@ const clubSchema = new mongoose.Schema(
     instagramUrl: { type: String, required: false },
     facebookUrl: { type: String, required: false },
     isUpdate: { type: Boolean, required: false, default: false },
+    latitude: { type: String, required: false },
+    longitude: { type: String, required: false },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        index: "2dsphere",
+      },
+    },
   },
   {
     timestamps: true,
@@ -278,6 +291,7 @@ const clubSchema = new mongoose.Schema(
 // Index clubName and status for faster queries
 clubSchema.index({ clubName: 1 });
 clubSchema.index({ status: 1 });
+clubSchema.index({ location: "2dsphere" });
 
 // Dynamically set the model name based on the environment
 let modelName = "Club";
