@@ -14,6 +14,7 @@ const handleCheckoutSessionCompleted = require("../utils/stripe/checkout-session
 const handleInvoicePaymentFailed = require("../utils/stripe/invoice-failed");
 const handleSubscriptionUpdated = require("../utils/stripe/update-subscription");
 const handleInvoicePaid = require("../utils/stripe/invoice-paid");
+const handleSubscriptionDeleted = require("../utils/stripe/delete-subscription");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
