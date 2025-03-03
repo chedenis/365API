@@ -1,3 +1,4 @@
+const { stripe } = require("../config/stripe");
 const { MemberShip } = require("../models");
 
 exports.checkMemberShipStatus = async (req, res) => {
@@ -109,9 +110,7 @@ exports.cancelMemberShipStatus = async (req, res) => {
     }
 
     // Cancel the subscription at period end (won't renew)
-    await stripe.subscriptions.update(membership.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    });
+    await stripe.subscriptions.cancel(membership.stripe_subscription_id);
 
     // Update our database
     membership.auto_renew = false;
@@ -120,7 +119,7 @@ exports.cancelMemberShipStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Membership will not renew at the end of the current period",
+      message: "Membership is canceled",
     });
   } catch (error) {
     console.error("Error canceling membership:", error);

@@ -1,4 +1,4 @@
-const { MemberShip } = require("../../models");
+const { MemberShip, User } = require("../../models");
 
 async function handleSubscriptionDeleted(subscription) {
   try {
@@ -15,6 +15,11 @@ async function handleSubscriptionDeleted(subscription) {
     // Update membership to canceled status
     membership.status = "canceled";
     membership.auto_renew = false;
+
+    //Update users membership status
+    await User.findByIdAndUpdate(membership?.user, {
+      membershipStatus: "Inactive",
+    });
 
     await membership.save();
     return true;

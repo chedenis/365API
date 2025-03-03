@@ -37,7 +37,7 @@ async function handleCheckoutSessionCompleted(session) {
         status: "active",
         start_date: startDate,
         end_date: endDate,
-        auto_renew: true,
+        auto_renew: false,
       });
     }
 
