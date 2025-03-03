@@ -429,6 +429,11 @@ exports.promoteToClub = async (req, res) => {
       coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
     };
 
+    club.location = {
+      type: "Point",
+      coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+    };
+
     club.status = "Complete";
     await club.save();
 
@@ -499,18 +504,61 @@ exports.listClubs = async (req, res) => {
 
 exports.filteredList = async (req, res) => {
   try {
-    const { courtTypes, surfaceType, netType } = req.body;
+    let {
+      courtTypes,
+      surfaceType,
+      netType,
+      searchParams,
+      latitude,
+      longitude,
+      radius,
+    } = req.body;
 
     const filters = { status: "Complete" };
 
-    if (courtTypes && courtTypes.length) {
+    let passLatLong = true;
+
+    if (!radius) {
+      radius = 10;
+    }
+
+    if (courtTypes?.length > 0) {
       filters.courtTypes = { $in: courtTypes };
+      passLatLong = false;
     }
-    if (surfaceType && surfaceType.length) {
+    if (surfaceType?.length > 0) {
       filters.surfaceType = { $in: surfaceType };
+      passLatLong = false;
     }
-    if (netType && netType.length) {
+    if (netType?.length > 0) {
       filters.netType = { $in: netType };
+      passLatLong = false;
+    }
+
+    if (searchParams) {
+      filters.clubName = { $regex: searchParams, $options: "i" };
+      passLatLong = false;
+    }
+
+    if (passLatLong && (latitude || longitude)) {
+      // if (!latitude || !longitude) {
+      //   return res
+      //     .status(400)
+      //     .json({ message: "Latitude or Longitude are required", data: [] });
+      // }
+
+      // Parse the values as floats to ensure they're numbers
+      const radiusInMeters = radius * 1000; // 10km
+
+      filters.location = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          $maxDistance: radiusInMeters,
+        },
+      };
     }
 
     const clubs = await Club.find(filters).lean();
