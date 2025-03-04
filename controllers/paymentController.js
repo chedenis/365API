@@ -9,9 +9,9 @@ exports.createPayment = async (req, res) => {
     let stripeCustomerId = userData?.stripeCustomerId;
     if (!stripeCustomerId) {
       const stripeCustomerData = await createOrUpdateCustomer({
-        firstName: profile?.name?.givenName,
-        lastName: profile?.name?.familyName || "Unknown",
-        email: email,
+        firstName: userData?.firstName,
+        lastName: userData?.lastName,
+        email: userData?.email,
         customerId: null,
       });
 
