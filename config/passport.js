@@ -4,6 +4,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const FacebookStrategy = require("passport-facebook").Strategy;
 const { Auth, User } = require("../models");
 const bcrypt = require("bcryptjs");
+const createOrUpdateCustomer = require("../helper/stripe/create-update-customer");
 
 passport.use(
   new LocalStrategy(
@@ -63,10 +64,21 @@ passport.use(
           const user = await User.findById(auth.user);
           return done(null, user);
         } else {
+          //create or update customer in stipe
+          const stripeCustomerData = await createOrUpdateCustomer({
+            firstName: profile?.name?.givenName,
+            lastName: profile?.name?.familyName || "Unknown",
+            email: email,
+            customerId: null,
+          });
+
           const newUser = new User({
             firstName: profile?.name?.givenName,
             lastName: profile?.name?.familyName || "Unknown",
             email,
+            stripeCustomerId: stripeCustomerData?.status
+              ? stripeCustomerData?.customerId
+              : "",
           });
           await newUser.save();
 
@@ -112,10 +124,21 @@ passport.use(
           const user = await User.findById(auth?.user);
           return done(null, user);
         } else {
+          //create or update customer in stipe
+          const stripeCustomerData = await createOrUpdateCustomer({
+            firstName: profile?.name?.givenName,
+            lastName: profile?.name?.familyName || "Unknown",
+            email: email,
+            customerId: null,
+          });
+
           const newUser = new User({
             firstName: profile?.name?.givenName,
             lastName: profile?.name?.familyName || "Unknown",
             email,
+            stripeCustomerId: stripeCustomerData?.status
+              ? stripeCustomerData?.customerId
+              : "",
           });
           await newUser.save();
 
