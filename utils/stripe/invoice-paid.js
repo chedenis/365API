@@ -1,4 +1,3 @@
-const { stripe } = require("../../config/stripe");
 const { MemberShip, Payment } = require("../../models");
 
 async function handleInvoicePaid(invoice) {
@@ -9,10 +8,11 @@ async function handleInvoicePaid(invoice) {
     // Find the membership
     const membership = await MemberShip.findOne({
       stripe_subscription_id: subscriptionId,
-    });
+    }).lean();
 
     if (!membership) {
       console.error("Membership not found for subscription:", subscriptionId);
+      return;
     }
 
     // Record the payment
@@ -27,10 +27,14 @@ async function handleInvoicePaid(invoice) {
       payment_date: new Date(invoice.status_transitions.paid_at * 1000),
     });
 
-    // Ensure membership is marked as active
-    membership.status = "active";
+    const membershipAfterUpdate = await MemberShip.findOne({
+      stripe_subscription_id: subscriptionId,
+    });
 
-    await membership.save();
+    // Ensure membership is marked as active
+    membershipAfterUpdate.status = "active";
+
+    await membershipAfterUpdate.save();
 
     // If this is a renewal, update the end date
     if (invoice.billing_reason === "subscription_cycle") {
@@ -39,8 +43,8 @@ async function handleInvoicePaid(invoice) {
       const newEndDate = new Date(currentEndDate);
       newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 
-      membership.end_date = newEndDate;
-      await membership.save();
+      membershipAfterUpdate.end_date = newEndDate;
+      await membershipAfterUpdate.save();
     }
     return true;
   } catch (error) {

@@ -15,6 +15,7 @@ const handleInvoicePaymentFailed = require("../utils/stripe/invoice-failed");
 const handleSubscriptionUpdated = require("../utils/stripe/update-subscription");
 const handleInvoicePaid = require("../utils/stripe/invoice-paid");
 const handleSubscriptionDeleted = require("../utils/stripe/delete-subscription");
+const handlePaymentCreate = require("../utils/stripe/payment-create");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -46,7 +47,6 @@ exports.stripeWebhookHandler = async (req, res) => {
   }
 
   console.log("Received event type:", event.type);
-  console.log("Event data object:", event.data.object); // Log the event data for debugging
 
   switch (event.type) {
     case "checkout.session.completed":
@@ -73,8 +73,9 @@ exports.stripeWebhookHandler = async (req, res) => {
 
     case "invoice.paid": {
       const invoice = event.data.object;
-
-      await handleInvoicePaid(invoice);
+      setTimeout(async () => {
+        await handleInvoicePaid(invoice);
+      }, 500);
       break;
     }
 
@@ -88,7 +89,9 @@ exports.stripeWebhookHandler = async (req, res) => {
     case "customer.subscription.updated": {
       const subscription = event.data.object;
       // Handle subscription changes
-      await handleSubscriptionUpdated(subscription);
+      setTimeout(async () => {
+        await handleSubscriptionUpdated(subscription);
+      }, 1000);
       break;
     }
 
@@ -96,6 +99,13 @@ exports.stripeWebhookHandler = async (req, res) => {
       const subscription = event.data.object;
       // Handle subscription cancellation
       await handleSubscriptionDeleted(subscription);
+      break;
+    }
+
+    case "payment_intent.succeeded": {
+      const payment = event.data.object;
+      // Handle subscription cancellation
+      await handlePaymentCreate(payment);
       break;
     }
 

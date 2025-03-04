@@ -9,7 +9,6 @@ async function handleCheckoutSessionCompleted(session) {
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription
     );
-    console.log("subscription", subscription);
 
     // Calculate membership end date (1 year from now)
     const startDate = new Date();
@@ -20,14 +19,13 @@ async function handleCheckoutSessionCompleted(session) {
     const existingMembership = await MemberShip.findOne({ user: userId });
 
     if (existingMembership) {
-      // Update existing membership
-      existingMembership.stripe_customer_id = session.customer;
-      existingMembership.stripe_subscription_id = session.subscription;
-      existingMembership.status = "active";
-      existingMembership.start_date = startDate;
-      existingMembership.end_date = endDate;
-      existingMembership.auto_renew = true;
-      await existingMembership.save();
+      await MemberShip.findByIdAndUpdate(existingMembership?._id, {
+        stripe_customer_id: session.customer,
+        stripe_subscription_id: session.subscription,
+        status: "active",
+        start_date: startDate,
+        end_date: endDate,
+      });
     } else {
       // Create new membership
       await MemberShip.create({
@@ -37,7 +35,6 @@ async function handleCheckoutSessionCompleted(session) {
         status: "active",
         start_date: startDate,
         end_date: endDate,
-        auto_renew: false,
       });
     }
 

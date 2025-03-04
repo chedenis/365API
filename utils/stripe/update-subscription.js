@@ -1,16 +1,14 @@
 const { stripe } = require("../../config/stripe");
-const { MemberShip } = require("../../models");
+const { MemberShip, User } = require("../../models");
 
 async function handleSubscriptionUpdated(subscription) {
   try {
-    // Find the membership
     const membership = await MemberShip.findOne({
       stripe_subscription_id: subscription.id,
-    });
+    }).lean();
 
     if (!membership) {
       console.error("Membership not found for subscription:", subscription.id);
-      return;
     }
 
     // Map Stripe status to our membership status
@@ -32,12 +30,30 @@ async function handleSubscriptionUpdated(subscription) {
         membershipStatus = "inactive";
     }
 
+    const membershipAfterUpdate = await MemberShip.findOne({
+      stripe_subscription_id: subscription.id,
+    });
+
     // Update membership status
-    membership.status = membershipStatus;
-    membership.auto_renew = !subscription.cancel_at_period_end;
-    await membership.save();
+    membershipAfterUpdate.status = membershipStatus;
+    membershipAfterUpdate.auto_renew = !subscription.cancel_at_period_end;
+    await membershipAfterUpdate.save();
+
+    const statusObj = {
+      active: "Active",
+      past_due: "Inactive",
+      canceled: "Inactive",
+      unpaid: "Inactive",
+      inactive: "Inactive",
+    };
+
+    await User.findByIdAndUpdate(membership?.user, {
+      membershipStatus: statusObj[membershipStatus],
+    });
+    return true;
   } catch (error) {
     console.error("Error handling subscription updated:", error);
+    return false;
   }
 }
 
