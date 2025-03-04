@@ -13,7 +13,6 @@ async function handleInvoicePaid(invoice) {
 
     if (!membership) {
       console.error("Membership not found for subscription:", subscriptionId);
-      return;
     }
 
     // Record the payment

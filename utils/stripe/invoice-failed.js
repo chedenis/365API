@@ -12,7 +12,6 @@ async function handleInvoicePaymentFailed(invoice) {
 
     if (!membership) {
       console.error("Membership not found for subscription:", subscriptionId);
-      return;
     }
 
     // Record the failed payment
