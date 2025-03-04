@@ -28,6 +28,6 @@ router.get("/facebook", clubAuthController.facebookAuth);
 router.get("/facebook/callback", clubAuthController.facebookCallback);
 
 // Logout
-router.get("/logout", clubAuthController.logoutClub);
+    router.get("/logout", clubAuthController.logoutClub);
 
-module.exports = router;
+    module.exports = router;

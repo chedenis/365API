@@ -105,7 +105,7 @@ exports.readClubs = async (req, res) => {
     }
     console.log(`Reading clubs for user ID: ${req.user.id}`); // Log user ID before function call
 
-    const clubs = await readClubsFromClubAuth(req.user.email);
+    const clubs = await readClubsFromClubAuth(req.user.email);  
 
     if (!clubs) {
       console.warn(`No clubs found for user ID: ${req.user.email}`); // Log if no clubs are found
