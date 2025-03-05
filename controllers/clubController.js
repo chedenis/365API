@@ -493,7 +493,7 @@ exports.listPendingClubs = async (req, res) => {
 // List all PendingClubs (for authorized users only)
 exports.clubListTableView = async (req, res) => {
   try {
-    const { city, county, clubName, status, pageNo, limit, referralCode } =
+    const { city, state, clubName, status, pageNo, limit, referralCode } =
       req.query;
     let filter = { status: status };
 
@@ -509,8 +509,8 @@ exports.clubListTableView = async (req, res) => {
     if (city) {
       filter["address.city"] = { $regex: city, $options: "i" }; // Case-insensitive partial match
     }
-    if (county) {
-      filter["address.county"] = { $regex: county, $options: "i" };
+    if (state) {
+      filter["address.state"] = { $regex: state, $options: "i" };
     }
     if (clubName) {
       filter["clubName"] = { $regex: clubName, $options: "i" };
