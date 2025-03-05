@@ -4,6 +4,7 @@ const createPayment = async (stripeCustomerId, userId) => {
   try {
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
+      payment_method_types: ["card"],
       line_items: [
         {
           price: process.env.STRIPE_PRICE_ID,
