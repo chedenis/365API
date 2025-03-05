@@ -263,14 +263,12 @@ const clubSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Not Ready", "Ready", "Complete"],
+      enum: ["Not Ready", "Ready", "Complete", "Re Approve"],
       default: "Not Ready",
     },
     instagramUrl: { type: String, required: false },
     facebookUrl: { type: String, required: false },
     isUpdate: { type: Boolean, required: false, default: false },
-    latitude: { type: String, required: false },
-    longitude: { type: String, required: false },
     location: {
       type: {
         type: String,
