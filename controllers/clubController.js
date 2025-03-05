@@ -425,10 +425,12 @@ exports.promoteToClub = async (req, res) => {
     // }
 
     // Update the location field with GeoJSON coordinates (longitude, latitude)
-    // club.address.location = {
-    //   type: "Point",
-    //   coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
-    // };
+    if (latitude || longitude) {
+      club.address.location = {
+        type: "Point",
+        coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+      };
+    }
 
     club.location = {
       type: "Point",
