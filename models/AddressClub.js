@@ -8,6 +8,10 @@ const addressSchemaClub = new mongoose.Schema(
     zip: { type: String, required: false },
     country: { type: String, required: false },
     suite: { type: String, required: false },
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [0, 0] }, // GeoJSON format [longitude, latitude]
+    },
   },
   { _id: false }
 );
