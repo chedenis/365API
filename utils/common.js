@@ -25,6 +25,10 @@ exports.pagination = async (
         .skip(skip)
         .limit(limit)
         .sort(sort)
+        .collation({
+          locale: "en",
+          strength: 2, // This enables case-insensitive comparison
+        })
         .lean(), // Convert to plain JS objects for better performance
     ]);
 

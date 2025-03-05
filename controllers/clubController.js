@@ -490,12 +490,108 @@ exports.listPendingClubs = async (req, res) => {
   }
 };
 
+// // List all PendingClubs (for authorized users only)
+// exports.clubListTableView = async (req, res) => {
+//   try {
+//     const {
+//       city,
+//       state,
+//       clubName,
+//       status,
+//       pageNo,
+//       limit,
+//       referralCode,
+//       sortBy,
+//       sortOrder,
+//     } = req.query;
+//     let filter = { status: status };
+
+//     if (!["Ready", "Complete", "Re Approve"].includes(status)) {
+//       return res.status(400).json({
+//         status: false,
+//         message: `Status not found`,
+//         data: [],
+//         pagination: {},
+//       });
+//     }
+
+//     if (city) {
+//       filter["address.city"] = { $regex: city, $options: "i" }; // Case-insensitive partial match
+//     }
+//     if (state) {
+//       filter["address.state"] = { $regex: state, $options: "i" };
+//     }
+//     if (clubName) {
+//       filter["clubName"] = { $regex: clubName, $options: "i" };
+//     }
+
+//     let clubAuthFilter = {};
+//     if (referralCode) {
+//       clubAuthFilter["referralCode"] = { $regex: referralCode, $options: "i" };
+//     }
+
+//     const clubAuths = await ClubAuth.find(clubAuthFilter);
+//     const clubList = [
+//       ...new Set(
+//         clubAuths?.flatMap((user) => user.clubs.map((club) => club.toString()))
+//       ),
+//     ];
+
+//     if (clubList.length > 0) {
+//       filter["_id"] = { $in: clubList };
+//     }
+
+//     // Sorting logic
+//     let sortOptions = {};
+//     if (["clubName", "createdAt"].includes(sortBy)) {
+//       sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+//     }
+
+//     const data = await pagination(Club, filter, pageNo, limit, sortOptions);
+
+//     const clubIds = data?.data?.map((club) => club._id.toString());
+
+//     const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
+
+//     const clubReferralMap = {};
+//     usersWithClubs?.forEach((user) => {
+//       user?.clubs?.forEach((clubId) => {
+//         clubReferralMap[clubId.toString()] = user?.referralCode;
+//       });
+//     });
+
+//     data.data = data?.data?.map((club) => ({
+//       ...club,
+//       referralCode: clubReferralMap[club._id.toString()] || "",
+//     }));
+
+//     return res.status(200).json(data);
+//   } catch (err) {
+//     console.error("Error listing pending clubs", err);
+//     return res.status(500).json({
+//       status: false,
+//       message: "List not fetched",
+//       data: [],
+//       pagination: {},
+//     });
+//   }
+// };
+
 // List all PendingClubs (for authorized users only)
 exports.clubListTableView = async (req, res) => {
   try {
-    const { city, state, clubName, status, pageNo, limit, referralCode } =
-      req.query;
-    let filter = { status: status };
+    const {
+      city,
+      state,
+      clubName,
+      status,
+      pageNo,
+      limit,
+      referralCode,
+      sortBy,
+      sortOrder,
+    } = req.query;
+    const filter = { status: status };
 
     if (!["Ready", "Complete", "Re Approve"].includes(status)) {
       return res.status(400).json({
@@ -516,38 +612,98 @@ exports.clubListTableView = async (req, res) => {
       filter["clubName"] = { $regex: clubName, $options: "i" };
     }
 
+    const clubAuthFilter = {};
     if (referralCode) {
-      const findClub = await ClubAuth.find({
-        referralCode: { $regex: referralCode, $options: "i" },
-      });
-      const clubList = [
-        ...new Set(
-          findClub?.flatMap((user) => user.clubs.map((club) => club.toString()))
-        ),
-      ];
+      clubAuthFilter["referralCode"] = { $regex: referralCode, $options: "i" };
+    }
 
+    const clubAuths = await ClubAuth.find(clubAuthFilter);
+    const clubList = [
+      ...new Set(
+        clubAuths?.flatMap((user) => user.clubs.map((club) => club.toString()))
+      ),
+    ];
+
+    if (clubList.length > 0) {
       filter["_id"] = { $in: clubList };
     }
 
-    const data = await pagination(Club, filter, pageNo, limit);
+    if (sortBy === "referralCode") {
+      const allClubs = await Club.find(filter);
 
-    const clubIds = data?.data?.map((club) => club._id.toString());
+      const clubIds = allClubs.map((club) => club._id.toString());
+      const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
 
-    const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
-
-    const clubReferralMap = {};
-    usersWithClubs?.forEach((user) => {
-      user?.clubs?.forEach((clubId) => {
-        clubReferralMap[clubId.toString()] = user?.referralCode;
+      const clubReferralMap = {};
+      usersWithClubs.forEach((user) => {
+        user.clubs.forEach((clubId) => {
+          clubReferralMap[clubId.toString()] = user.referralCode || "";
+        });
       });
-    });
 
-    data.data = data?.data?.map((club) => ({
-      ...club,
-      referralCode: clubReferralMap[club._id.toString()] || "",
-    }));
+      const clubsWithReferrals = allClubs.map((club) => {
+        const clubObj = club.toObject();
+        return {
+          ...clubObj,
+          referralCode: clubReferralMap[club._id.toString()] || "",
+        };
+      });
 
-    return res.status(200).json(data);
+      clubsWithReferrals.sort((a, b) => {
+        if (sortOrder === "desc") {
+          return b.referralCode.localeCompare(a.referralCode);
+        }
+        return a.referralCode.localeCompare(b.referralCode);
+      });
+
+      const page = Number.parseInt(pageNo) || 1;
+      const limitNum = Number.parseInt(limit) || 10;
+      const startIndex = (page - 1) * limitNum;
+      const endIndex = page * limitNum;
+
+      const paginatedData = clubsWithReferrals.slice(startIndex, endIndex);
+
+      return res.status(200).json({
+        status: true,
+        message: "List fetched successfully",
+        data: paginatedData,
+        pagination: {
+          totalRecords: clubsWithReferrals.length,
+          totalPages: Math.ceil(clubsWithReferrals.length / limitNum),
+          currentPage: page,
+          currentLimit: limitNum,
+          isNextPage: endIndex < clubsWithReferrals.length ? page + 1 : null,
+        },
+      });
+    } else {
+      // Regular sorting for fields in the Club model
+      const sortOptions = {};
+      if (["clubName", "createdAt"].includes(sortBy)) {
+        sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+      } else {
+        // Default sort by createdAt if sortBy is not specified or invalid
+        sortOptions["createdAt"] = -1;
+      }
+
+      const data = await pagination(Club, filter, pageNo, limit, sortOptions);
+
+      const clubIds = data?.data?.map((club) => club._id.toString());
+      const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
+
+      const clubReferralMap = {};
+      usersWithClubs?.forEach((user) => {
+        user?.clubs?.forEach((clubId) => {
+          clubReferralMap[clubId.toString()] = user?.referralCode;
+        });
+      });
+
+      data.data = data?.data?.map((club) => ({
+        ...club,
+        referralCode: clubReferralMap[club._id.toString()] || "",
+      }));
+
+      return res.status(200).json(data);
+    }
   } catch (err) {
     console.error("Error listing pending clubs", err);
     return res.status(500).json({
