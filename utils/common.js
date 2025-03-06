@@ -15,6 +15,8 @@ exports.pagination = async (
   projection = {} // Optionally specify fields to fetch
 ) => {
   try {
+    page = parseInt(page);
+    limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
     // Fetch total records and paginated data concurrently

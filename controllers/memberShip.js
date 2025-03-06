@@ -41,7 +41,7 @@ exports.checkMemberShipStatus = async (req, res) => {
   } catch (error) {
     console.error("Error checking membership status:", error);
     return res.status(500).json({
-      status: true,
+      status: false,
       error: "!!! Oops Somethings went wrong",
       data: {},
     });
