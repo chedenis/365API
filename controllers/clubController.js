@@ -596,7 +596,7 @@ exports.clubListTableView = async (req, res) => {
     } = req.query;
     const filter = { status: status };
 
-    if (!["Ready", "Complete", "Re Approve"].includes(status)) {
+    if (!["Ready", "Complete", "Re Approve Request"].includes(status)) {
       return res.status(400).json({
         status: false,
         message: `Status not found`,
@@ -613,6 +613,10 @@ exports.clubListTableView = async (req, res) => {
     }
     if (clubName) {
       filter["clubName"] = { $regex: clubName, $options: "i" };
+    }
+
+    if (status == "Re Approve Request") {
+      filter["status"] = { $in: ["Ready", "Re Approve Request"] };
     }
 
     const clubAuthFilter = {};
