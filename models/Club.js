@@ -263,7 +263,7 @@ const clubSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Not Ready", "Ready", "Complete", "Re Approve"],
+      enum: ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"],
       default: "Not Ready",
     },
     instagramUrl: { type: String, required: false },
