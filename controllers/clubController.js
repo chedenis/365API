@@ -131,7 +131,13 @@ exports.readClubById = async (req, res) => {
       return res.status(404).json({ error: "Club not found" });
     }
 
-    res.status(200).json(club);
+    const clubAuth = await ClubAuth.findOne({ clubs: id })
+      .select("referralCode")
+      .lean();
+
+    return res
+      .status(200)
+      .json({ ...club, referralCode: clubAuth?.referralCode || "" });
   } catch (err) {
     console.error("Error fetching club", err);
     res
