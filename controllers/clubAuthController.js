@@ -287,3 +287,28 @@ exports.getLoginStatus = async (req, res) => {
 exports.logoutClub = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
+
+exports.updateClubOwnerToAdmin = async (req, res) => {
+  try {
+    const { emailList } = req.body;
+
+    // Update users in the list to "admin"
+    await ClubAuth.updateMany(
+      { email: { $in: emailList } },
+      { $set: { userType: "admin" } }
+    );
+
+    // Update users NOT in the list to "clubOwner"
+    await ClubAuth.updateMany(
+      { email: { $nin: emailList } },
+      { $set: { userType: "clubOwner" } }
+    );
+
+    return res.status(200).json({ message: "Club updated successfully" });
+  } catch (err) {
+    console.error("Error updating club", err);
+    return res
+      .status(500)
+      .json({ error: "Error updating club", details: err.message });
+  }
+};

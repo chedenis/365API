@@ -54,6 +54,11 @@ const clubAuthSchema = new mongoose.Schema(
         default: [],
       },
     ],
+    userType: {
+      type: String,
+      enum: ["clubOwner", "admin"],
+      default: "clubOwner",
+    },
   },
   {
     timestamps: true,
