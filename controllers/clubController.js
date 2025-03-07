@@ -685,7 +685,7 @@ exports.clubListTableView = async (req, res) => {
           totalPages: Math.ceil(clubsWithReferrals.length / limitNum),
           currentPage: page,
           currentLimit: limitNum,
-          isNextPage: endIndex < clubsWithReferrals.length ? page + 1 : null,
+          isNextPage: endIndex < clubsWithReferrals.length,
         },
       });
     } else {
