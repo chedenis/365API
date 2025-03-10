@@ -72,6 +72,8 @@ exports.createComments = async (req, res) => {
         title: "Comments Added",
         body: `Admin added the comments for ${findClub?.clubName}`,
         notificationType: "createCommentsForClub",
+        redirectTo: "club",
+        redirectId: findClub?._id,
       });
     } else {
       const [findList] = await ClubComments.find({
@@ -100,6 +102,8 @@ exports.createComments = async (req, res) => {
         title: "Comments updated",
         body: `${findClub?.clubName}'s comments is updated`,
         notificationType: "createCommentsForAdmin",
+        redirectTo: "club",
+        redirectId: findClub?._id,
       });
     }
 

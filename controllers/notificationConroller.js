@@ -1,4 +1,4 @@
-const { Notification } = require("../models");
+const { Notification, User, Club, ClubAuth } = require("../models");
 const { pagination, defaultServerErrorMessage } = require("../utils/common");
 
 exports.notificationList = async (req, res) => {
@@ -6,12 +6,28 @@ exports.notificationList = async (req, res) => {
     const userId = req.user._id;
     const { pageNo, limit } = req.query;
 
-    const data = await pagination(
+    let data = await pagination(
       Notification,
       { receiver: userId },
       pageNo,
       limit
     );
+
+    for (let i = 0; i < data?.data?.length; i++) {
+      const notificationData = data?.data?.[i];
+
+      if (
+        notificationData?.redirectId &&
+        ["createCommentsForAdmin", "createCommentsForClub"].includes(
+          notificationData?.notificationType
+        )
+      ) {
+        const findClub = await Club.findById(notificationData?.redirectId);
+        notificationData.senderClubNameData = findClub || {};
+      } else {
+        notificationData.senderClubNameData = {};
+      }
+    }
 
     return res.status(200).json(data);
   } catch (error) {
