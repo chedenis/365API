@@ -638,8 +638,8 @@ exports.clubListTableView = async (req, res) => {
       filter["referralCode"] = { $regex: `^${referralCode}`, $options: "i" };
     }
 
-    if (status == "Re Approve Request") {
-      filter["status"] = { $in: ["Ready", "Re Approve Request"] };
+    if (status == "Re Approve") {
+      filter["status"] = { $in: ["Ready", "Re Approve"] };
     }
 
     const clubAuthFilter = {};
