@@ -607,7 +607,16 @@ exports.clubListTableView = async (req, res) => {
     } = req.query;
     const filter = { status: status };
 
-    if (!["Ready", "Complete", "Re Approve Request"].includes(status)) {
+    if (
+      ![
+        "Not Ready",
+        "Ready",
+        "Complete",
+        "Re Approve Request",
+        "Re Approve",
+        "Reject",
+      ].includes(status)
+    ) {
       return res.status(400).json({
         status: false,
         message: `Status not found`,
