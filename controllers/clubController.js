@@ -131,7 +131,13 @@ exports.readClubById = async (req, res) => {
       return res.status(404).json({ error: "Club not found" });
     }
 
-    res.status(200).json(club);
+    const clubAuth = await ClubAuth.findOne({ clubs: id })
+      .select("referralCode")
+      .lean();
+
+    return res
+      .status(200)
+      .json({ ...club, referralCode: clubAuth?.referralCode || "" });
   } catch (err) {
     console.error("Error fetching club", err);
     res
@@ -596,7 +602,7 @@ exports.clubListTableView = async (req, res) => {
     } = req.query;
     const filter = { status: status };
 
-    if (!["Ready", "Complete", "Re Approve"].includes(status)) {
+    if (!["Ready", "Complete", "Re Approve Request"].includes(status)) {
       return res.status(400).json({
         status: false,
         message: `Status not found`,
@@ -613,6 +619,10 @@ exports.clubListTableView = async (req, res) => {
     }
     if (clubName) {
       filter["clubName"] = { $regex: clubName, $options: "i" };
+    }
+
+    if (status == "Re Approve Request") {
+      filter["status"] = { $in: ["Ready", "Re Approve Request"] };
     }
 
     const clubAuthFilter = {};
@@ -675,7 +685,7 @@ exports.clubListTableView = async (req, res) => {
           totalPages: Math.ceil(clubsWithReferrals.length / limitNum),
           currentPage: page,
           currentLimit: limitNum,
-          isNextPage: endIndex < clubsWithReferrals.length ? page + 1 : null,
+          isNextPage: endIndex < clubsWithReferrals.length,
         },
       });
     } else {

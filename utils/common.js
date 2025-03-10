@@ -11,7 +11,9 @@ exports.pagination = async (
   filter = {},
   page = pageNo,
   limit = offSet,
-  sort = {},
+  sort = {
+    createdAt: -1,
+  },
   projection = {} // Optionally specify fields to fetch
 ) => {
   try {

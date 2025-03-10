@@ -36,6 +36,7 @@ const ResetTokenModelName =
 const MemberShipModuleName = "MemberShip";
 const PaymentModuleName = "Payment";
 const ClubCommentsModuleName = "ClubComments";
+const NotificationModuleName = "Notification";
 
 // Import schemas
 const ClubSchema = require("./Club");
@@ -46,6 +47,7 @@ const ResetTokenSchema = require("./ResetToken");
 const MemberShipSchema = require("./MemberShip");
 const PaymentSchema = require("./Payment");
 const ClubCommentsSchema = require("./ClubComments");
+const NotificationSchema = require("./Notification");
 
 // Register each model only once with the dynamic name
 const Club =
@@ -69,6 +71,9 @@ const Payment =
 const ClubComments =
   mongoose.models[ClubCommentsModuleName] ||
   mongoose.model(ClubCommentsModuleName, ClubCommentsSchema);
+const Notification =
+  mongoose.models[NotificationModuleName] ||
+  mongoose.model(NotificationModuleName, NotificationSchema);
 
 console.log("Registered models:", mongoose.modelNames());
 
@@ -82,4 +87,5 @@ module.exports = {
   MemberShip,
   Payment,
   ClubComments,
+  Notification,
 };

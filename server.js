@@ -102,7 +102,6 @@ const miscellaneousRoute = require("./routes/miscellaneousRoutes");
 const paymentRoutes = require("./routes/payment");
 const membershipRoutes = require("./routes/membership");
 const clubCommentsRoutes = require("./routes/clubComments");
-
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/club", clubRoutes);

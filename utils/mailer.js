@@ -102,4 +102,61 @@ const sendEmailOTP = async (to, subject, otp, role) => {
   }
 };
 
-module.exports = { sendEmail, sendEmailOTP };
+const sendEmailForClubComments = async (
+  to,
+  subject,
+  role = "club",
+  extraData = {}
+) => {
+  try {
+    // Create an SES client
+    const sesClient = new SESClient();
+
+    const htmlContent = `
+      <div style="background-color: ${
+        role === "club" ? "#EAF8F1" : "rgb(255, 249, 255)"
+      }; padding: 50px; font-family: Arial, sans-serif; text-align: center;">
+        <div style="max-width: 450px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 30px; text-align: center; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+          <p style="color: #555; font-size: 14px; margin-bottom: 20px; text-align: center;">
+            You have received 1 notification
+          </p>
+          <p style="color: #555; font-size: 14px; margin-top: 20px; text-align: left;">
+            ${extraData && `message: ${extraData?.message}`}
+          </p>
+          <p style="color: #555; font-size: 14px; margin-top: 20px; text-align: left;">
+            ${
+              extraData &&
+              `show details : <a href="${extraData?.redirectUrl}"> ${extraData?.redirectUrl} <a>`
+            }
+          </p>
+      </div>
+    `;
+
+    const emailParams = {
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Body: {
+          Html: {
+            Data: htmlContent,
+          },
+        },
+        Subject: {
+          Data: subject,
+        },
+      },
+      Source: '"365Dink Support" <noreply@365Dink.com>', // Replace with your SES-verified email/domain
+    };
+
+    // Send the email
+    const command = new SendEmailCommand(emailParams);
+    await sesClient.send(command);
+    console.log("Email sent successfully via SES.");
+  } catch (error) {
+    console.error("Error sending email via SES:", error);
+    throw new Error("Unable to send email.");
+  }
+};
+
+module.exports = { sendEmail, sendEmailOTP, sendEmailForClubComments };

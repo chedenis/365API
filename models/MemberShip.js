@@ -25,7 +25,7 @@ const memberShipSchema = new mongoose.Schema(
     end_date: Date,
     auto_renew: {
       type: Boolean,
-      default: false,
+      default: true,
     },
   },
   {
