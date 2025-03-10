@@ -694,7 +694,8 @@ exports.filteredList = async (req, res) => {
 
     const filters = { status: "Complete" };
 
-    let passLatLong = true;
+    //temporary disable
+    let passLatLong = false;
 
     if (!radius) {
       radius = 10;
