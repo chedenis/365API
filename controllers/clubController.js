@@ -149,8 +149,13 @@ exports.readClubById = async (req, res) => {
 // Create a Club and link it to ClubAuth
 exports.createClub = async (req, res) => {
   try {
-    const clubDetails = req.body;
+    let clubDetails = req.body;
     const email = req.user.email;
+    const referralCode = req?.user?.referralCode;
+
+    if (referralCode) {
+      clubDetails.referralCode = referralCode;
+    }
 
     if (!req.user?.email) {
       return res
@@ -620,6 +625,9 @@ exports.clubListTableView = async (req, res) => {
     if (clubName) {
       filter["clubName"] = { $regex: clubName, $options: "i" };
     }
+    if (referralCode) {
+      filter["referralCode"] = { $regex: `^${referralCode}`, $options: "i" };
+    }
 
     if (status == "Re Approve Request") {
       filter["status"] = { $in: ["Ready", "Re Approve Request"] };
@@ -630,93 +638,15 @@ exports.clubListTableView = async (req, res) => {
       clubAuthFilter["referralCode"] = { $regex: referralCode, $options: "i" };
     }
 
-    const clubAuths = await ClubAuth.find(clubAuthFilter);
-    const clubList = [
-      ...new Set(
-        clubAuths?.flatMap((user) => user.clubs.map((club) => club.toString()))
-      ),
-    ];
-
-    if (clubList.length > 0) {
-      filter["_id"] = { $in: clubList };
+    // Regular sorting for fields in the Club model
+    const sortOptions = {};
+    if (["clubName", "createdAt", "referralCode"].includes(sortBy)) {
+      sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
     }
 
-    if (sortBy === "referralCode") {
-      const allClubs = await Club.find(filter);
+    const data = await pagination(Club, filter, pageNo, limit, sortOptions);
 
-      const clubIds = allClubs.map((club) => club._id.toString());
-      const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
-
-      const clubReferralMap = {};
-      usersWithClubs.forEach((user) => {
-        user.clubs.forEach((clubId) => {
-          clubReferralMap[clubId.toString()] = user.referralCode || "";
-        });
-      });
-
-      const clubsWithReferrals = allClubs.map((club) => {
-        const clubObj = club.toObject();
-        return {
-          ...clubObj,
-          referralCode: clubReferralMap[club._id.toString()] || "",
-        };
-      });
-
-      clubsWithReferrals.sort((a, b) => {
-        if (sortOrder === "desc") {
-          return b.referralCode.localeCompare(a.referralCode);
-        }
-        return a.referralCode.localeCompare(b.referralCode);
-      });
-
-      const page = Number.parseInt(pageNo) || 1;
-      const limitNum = Number.parseInt(limit) || 10;
-      const startIndex = (page - 1) * limitNum;
-      const endIndex = page * limitNum;
-
-      const paginatedData = clubsWithReferrals.slice(startIndex, endIndex);
-
-      return res.status(200).json({
-        status: true,
-        message: "List fetched successfully",
-        data: paginatedData,
-        pagination: {
-          totalRecords: clubsWithReferrals.length,
-          totalPages: Math.ceil(clubsWithReferrals.length / limitNum),
-          currentPage: page,
-          currentLimit: limitNum,
-          isNextPage: endIndex < clubsWithReferrals.length,
-        },
-      });
-    } else {
-      // Regular sorting for fields in the Club model
-      const sortOptions = {};
-      if (["clubName", "createdAt"].includes(sortBy)) {
-        sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-      } else {
-        // Default sort by createdAt if sortBy is not specified or invalid
-        sortOptions["createdAt"] = -1;
-      }
-
-      const data = await pagination(Club, filter, pageNo, limit, sortOptions);
-
-      const clubIds = data?.data?.map((club) => club._id.toString());
-      const usersWithClubs = await ClubAuth.find({ clubs: { $in: clubIds } });
-
-      const clubReferralMap = {};
-      usersWithClubs?.forEach((user) => {
-        user?.clubs?.forEach((clubId) => {
-          clubReferralMap[clubId.toString()] = user?.referralCode;
-        });
-      });
-
-      data.data = data?.data?.map((club) => ({
-        ...club,
-        referralCode: clubReferralMap[club._id.toString()] || "",
-      }));
-
-      return res.status(200).json(data);
-    }
+    return res.status(200).json(data);
   } catch (err) {
     console.error("Error listing pending clubs", err);
     return res.status(500).json({

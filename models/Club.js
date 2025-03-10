@@ -292,6 +292,7 @@ const clubSchema = new mongoose.Schema(
       type: [String], // Array of strings
       default: [], // Default to an empty array
     },
+    referralCode: { type: String, required: false, trim: true },
   },
   {
     timestamps: true,
