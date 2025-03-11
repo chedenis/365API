@@ -135,7 +135,7 @@ exports.listComments = async (req, res) => {
       pageNo,
       limit,
       {
-        createdAt: -1,
+        createdAt: 1,
       }
     );
     return res.status(200).json(data);
