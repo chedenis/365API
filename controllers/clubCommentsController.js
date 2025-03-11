@@ -69,8 +69,8 @@ exports.createComments = async (req, res) => {
         senderType: userData?.userType,
         receiver: clubAuth?._id,
         receiverType: clubAuth?.userType,
-        title: "Comments Added",
-        body: `Admin added the comments for ${findClub?.clubName}`,
+        title: "Club Rejection Notice",
+        body: `Your club details have been rejected by Admin.`,
         notificationType: "createCommentsForClub",
         redirectTo: "club",
         redirectId: findClub?._id,
@@ -99,8 +99,8 @@ exports.createComments = async (req, res) => {
         senderType: userData?.userType,
         receiver: findList?.clubUser?._id,
         receiverType: findList?.clubUser?.userType,
-        title: "Comments updated",
-        body: `${findClub?.clubName}'s comments is updated`,
+        title: "Reply from Club Owner",
+        body: `We have updated the club details as requested.`,
         notificationType: "createCommentsForAdmin",
         redirectTo: "club",
         redirectId: findClub?._id,
@@ -135,7 +135,7 @@ exports.listComments = async (req, res) => {
       pageNo,
       limit,
       {
-        createdAt: -1,
+        createdAt: 1,
       }
     );
     return res.status(200).json(data);
