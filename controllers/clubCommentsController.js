@@ -1,10 +1,6 @@
 const { ClubComments, Club, ClubAuth } = require("../models");
 const { pagination } = require("../utils/common");
-const {
-  sendEmailForClubComments,
-  sendEmailForClubCommentsToAdmin,
-  sendEmailForClubCommentsToClubOwner,
-} = require("../utils/mailer");
+const { sendEmailForClubComments } = require("../utils/mailer");
 const { createNotification } = require("../utils/notification");
 
 exports.createComments = async (req, res) => {
@@ -63,12 +59,13 @@ exports.createComments = async (req, res) => {
     if (userData?.userType == "admin") {
       const clubAuth = await ClubAuth.findOne({ clubs: club }).lean();
 
-      await sendEmailForClubCommentsToClubOwner(
+      await sendEmailForClubComments(
         clubAuth?.email,
         `Reply from Admin - ${findClub?.clubName}`,
-        "club",
+        "admin",
         {
-          sendingTime: new Date(),
+          redirectUrl: `${process.env.FRONTEND_URL}/club/profile/${findClub?._id}`,
+          clubName: findClub?.clubName,
         }
       );
 
@@ -91,13 +88,13 @@ exports.createComments = async (req, res) => {
         .populate("clubUser")
         .lean();
 
-      await sendEmailForClubCommentsToAdmin(
+      await sendEmailForClubComments(
         findList?.clubUser?.email,
         `Reply from Club Owner - ${findClub?.clubName}`,
         "club",
         {
+          redirectUrl: `${process.env.FRONTEND_URL}/club/profile/${findClub?._id}`,
           clubName: findClub?.clubName,
-          sendingTime: new Date(),
         }
       );
 
