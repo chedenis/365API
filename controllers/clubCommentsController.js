@@ -1,6 +1,10 @@
 const { ClubComments, Club, ClubAuth } = require("../models");
 const { pagination } = require("../utils/common");
-const { sendEmailForClubComments } = require("../utils/mailer");
+const {
+  sendEmailForClubComments,
+  sendEmailForClubCommentsToAdmin,
+  sendEmailForClubCommentsToClubOwner,
+} = require("../utils/mailer");
 const { createNotification } = require("../utils/notification");
 
 exports.createComments = async (req, res) => {
@@ -59,10 +63,14 @@ exports.createComments = async (req, res) => {
     if (userData?.userType == "admin") {
       const clubAuth = await ClubAuth.findOne({ clubs: club }).lean();
 
-      await sendEmailForClubComments(clubAuth?.email, "Club Comments", "club", {
-        message: `Admin added the comments for ${findClub?.clubName}`,
-        redirectUrl: `${process.env.FRONTEND_URL}club/profile/${club}`,
-      });
+      await sendEmailForClubCommentsToClubOwner(
+        clubAuth?.email,
+        `Reply from Admin - ${findClub?.clubName}`,
+        "club",
+        {
+          sendingTime: new Date(),
+        }
+      );
 
       await createNotification({
         sender: userData?._id,
@@ -83,13 +91,13 @@ exports.createComments = async (req, res) => {
         .populate("clubUser")
         .lean();
 
-      await sendEmailForClubComments(
+      await sendEmailForClubCommentsToAdmin(
         findList?.clubUser?.email,
-        "Club Comments",
+        `Reply from Club Owner - ${findClub?.clubName}`,
         "club",
         {
-          message: `${findClub?.clubName}'s comments is updated`,
-          redirectUrl: `${process.env.FRONTEND_URL}club/profile/${club}`,
+          clubName: findClub?.clubName,
+          sendingTime: new Date(),
         }
       );
 
@@ -133,10 +141,7 @@ exports.listComments = async (req, res) => {
       ClubComments,
       { club: clubId },
       pageNo,
-      limit,
-      {
-        createdAt: 1,
-      }
+      limit
     );
     return res.status(200).json(data);
   } catch (error) {
