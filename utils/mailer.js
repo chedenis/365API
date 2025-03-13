@@ -105,7 +105,7 @@ const sendEmailOTP = async (to, subject, otp, role) => {
 const sendEmailForClubComments = async (
   to,
   subject,
-  senderRole = "club", // admin/club
+  receiverRole = "club", // admin/club
   extraData = {}
 ) => {
   try {
@@ -143,6 +143,12 @@ const sendEmailForClubComments = async (
             color: red;
         }
 
+        .title-success {
+          font-size: 26px;  
+          font-weight: bold;
+          color: #37C597;
+        }
+
         .content {
             margin-top: 15px;
             line-height: 1.6;
@@ -157,7 +163,7 @@ const sendEmailForClubComments = async (
             border: 1px solid #37C597;
             padding: 10px 30px;
             font-size: 16px;
-            color: white;
+            color: white !important;
             background-color: #37C597;
             border-radius: 5px;
             cursor: pointer;
@@ -166,7 +172,7 @@ const sendEmailForClubComments = async (
 
         .button:hover {
             background-color: white;
-            color: #37C597;
+            color: #37C597 !important;
         }
 
         .footer {
@@ -184,19 +190,19 @@ const sendEmailForClubComments = async (
             background-color: rgba(55, 197, 151, 0.2);" >
     <div class="container">
       ${
-        senderRole == "club"
+        receiverRole == "club"
           ? `<div class="title">Your club details have been rejected by Admin</div>
         <div class="content">
-            <p>Please update the address and contact information.</p>
+            <p>Message: ${extraData?.message}</p>
             <a href="${extraData?.redirectUrl}" class="button" style="cursor:pointer;text-decoration:none;">Go to ${extraData?.clubName}</a>
         </div>
         <div class="footer">
             Thanks,<br>
             The 365Dink Team
         </div>`
-          : `<div class="title">Club ${extraData?.clubName} has replied to your comment</div>
+          : `<div class="title-success">Club ${extraData?.clubName} has replied to your comment</div>
         <div class="content">
-            <p>We have updated the club details as requested.</p>
+            <p>Message: ${extraData?.message}</p>
             <a href="${extraData?.redirectUrl}" class="button" style="cursor:pointer;text-decoration:none;">Go to ${extraData?.clubName}</a>
 
         </div>
