@@ -263,7 +263,14 @@ const clubSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Not Ready", "Ready", "Complete", "Re Approve"],
+      enum: [
+        "Not Ready",
+        "Ready",
+        "Complete",
+        "Re Approve Request",
+        "Re Approve",
+        "Reject",
+      ],
       default: "Not Ready",
     },
     instagramUrl: { type: String, required: false },
@@ -281,6 +288,11 @@ const clubSchema = new mongoose.Schema(
         default: [0, 0],
       },
     },
+    updatedFields: {
+      type: [String], // Array of strings
+      default: [], // Default to an empty array
+    },
+    referralCode: { type: String, required: false, trim: true },
   },
   {
     timestamps: true,

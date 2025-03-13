@@ -11,10 +11,14 @@ exports.pagination = async (
   filter = {},
   page = pageNo,
   limit = offSet,
-  sort = {},
+  sort = {
+    createdAt: -1,
+  },
   projection = {} // Optionally specify fields to fetch
 ) => {
   try {
+    page = parseInt(page);
+    limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
     // Fetch total records and paginated data concurrently

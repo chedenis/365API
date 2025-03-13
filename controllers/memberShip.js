@@ -6,7 +6,7 @@ exports.checkMemberShipStatus = async (req, res) => {
     const userId = req.user._id;
 
     const membership = await MemberShip.findOne({ user: userId }).sort({
-      created_at: -1,
+      createdAt: -1,
     });
 
     if (!membership) {
@@ -41,7 +41,7 @@ exports.checkMemberShipStatus = async (req, res) => {
   } catch (error) {
     console.error("Error checking membership status:", error);
     return res.status(500).json({
-      status: true,
+      status: false,
       error: "!!! Oops Somethings went wrong",
       data: {},
     });
@@ -103,19 +103,24 @@ exports.cancelMemberShipStatus = async (req, res) => {
       status: "active",
     });
 
-    if (!membership || !membership.stripe_subscription_id) {
+    if (!membership?.stripe_subscription_id) {
       return res
         .status(404)
         .json({ status: false, error: "Active membership not found" });
     }
 
-    // Cancel the subscription at period end (won't renew)
-    await stripe.subscriptions.cancel(membership.stripe_subscription_id);
+    // Cancel the subscription instantly
+    // await stripe.subscriptions.cancel(membership.stripe_subscription_id);
+
+    // cancel the subscription at period end
+    await stripe.subscriptions.update(membership.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
 
     // Update our database
-    membership.auto_renew = false;
+    // membership.auto_renew = false;
 
-    await membership.save();
+    // await membership.save();
 
     return res.status(200).json({
       success: true,

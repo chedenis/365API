@@ -3,6 +3,10 @@ const router = express.Router();
 const clubController = require("../controllers/clubController");
 const userAuthMiddleware = require("../middleware/auth");
 const clubAuthMiddleware = require("../middleware/clubAuth");
+const {
+  notificationList,
+  readNotification,
+} = require("../controllers/notificationConroller");
 
 // Read Club or PendingClub (for the authenticated club)
 router.get("/read", clubAuthMiddleware, clubController.readClubs);
@@ -40,6 +44,9 @@ router.patch("/cancel-membership", clubController.cancelMembership);
 router.post("/filteredList", clubController.filteredList);
 
 router.get("/notready", clubController.listNotReadyClubs);
+
+router.get("/notification/list", clubAuthMiddleware, notificationList);
+router.post("/notification/read", clubAuthMiddleware, readNotification);
 
 // router.post(
 //   "/generate-upload-url",
