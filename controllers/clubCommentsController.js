@@ -62,10 +62,11 @@ exports.createComments = async (req, res) => {
       await sendEmailForClubComments(
         clubAuth?.email,
         `Reply from Admin - ${findClub?.clubName}`,
-        "admin",
+        "club",
         {
           redirectUrl: `${process.env.FRONTEND_URL}/club/profile/${findClub?._id}`,
           clubName: findClub?.clubName,
+          message: message,
         }
       );
 
@@ -75,7 +76,7 @@ exports.createComments = async (req, res) => {
         receiver: clubAuth?._id,
         receiverType: clubAuth?.userType,
         title: "Club Rejection Notice",
-        body: `Club ${findClub?.clubName} has replied to your comment.`,
+        body: `Your club details have been rejected by Admin.`,
         notificationType: "createCommentsForClub",
         redirectTo: "club",
         redirectId: findClub?._id,
@@ -91,10 +92,11 @@ exports.createComments = async (req, res) => {
       await sendEmailForClubComments(
         findList?.clubUser?.email,
         `Reply from Club Owner - ${findClub?.clubName}`,
-        "club",
+        "admin",
         {
-          redirectUrl: `${process.env.FRONTEND_URL}/club/profile/${findClub?._id}`,
+          redirectUrl: `${process.env.FRONTEND_URL}/club/edit/${findClub?._id}`,
           clubName: findClub?.clubName,
+          message: message,
         }
       );
 
@@ -105,7 +107,7 @@ exports.createComments = async (req, res) => {
         receiver: findList?.clubUser?._id,
         receiverType: findList?.clubUser?.userType,
         title: "Reply from Club Owner",
-        body: `Your club details have been rejected by Admin.`,
+        body: `Club ${findClub?.clubName} has replied to your comment.`,
         notificationType: "createCommentsForAdmin",
         redirectTo: "club",
         redirectId: findClub?._id,

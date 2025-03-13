@@ -66,7 +66,11 @@ exports.loginClub = (req, res, next) => {
     res.status(200).json({
       message: "Club logged in successfully",
       token,
-      clubAuth: { id: clubAuth._id, email: clubAuth.email },
+      clubAuth: {
+        id: clubAuth._id,
+        email: clubAuth.email,
+        userType: clubAuth.userType,
+      },
     });
   })(req, res, next);
 };
