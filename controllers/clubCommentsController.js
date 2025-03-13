@@ -6,7 +6,7 @@ const { createNotification } = require("../utils/notification");
 exports.createComments = async (req, res) => {
   try {
     const userData = req.user;
-    const { club, message, clubStatus } = req.body;
+    const { club, message, clubStatus, isReminder } = req.body;
 
     if (!["clubOwner", "admin"].includes(userData?.userType)) {
       return res
@@ -64,6 +64,7 @@ exports.createComments = async (req, res) => {
         `Reply from Admin - ${findClub?.clubName}`,
         "club",
         {
+          title: "Your club details have been rejected by Admin",
           redirectUrl: `${process.env.FRONTEND_URL}/club/profile/${findClub?._id}`,
           clubName: findClub?.clubName,
           message: message,
@@ -91,9 +92,14 @@ exports.createComments = async (req, res) => {
 
       await sendEmailForClubComments(
         findList?.clubUser?.email,
-        `Reply from Club Owner - ${findClub?.clubName}`,
+        isReminder
+          ? `Club Approval Reminder for ${findClub?.clubName}`
+          : `Reply from Club Owner - ${findClub?.clubName}`,
         "admin",
         {
+          title: isReminder
+            ? `${findClub?.clubName} has sent a reminder for your club approval. `
+            : `Club ${findClub?.clubName} has replied to your comment`,
           redirectUrl: `${process.env.FRONTEND_URL}/club/edit/${findClub?._id}`,
           clubName: findClub?.clubName,
           message: message,

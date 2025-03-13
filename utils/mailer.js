@@ -191,7 +191,7 @@ const sendEmailForClubComments = async (
     <div class="container">
       ${
         receiverRole == "club"
-          ? `<div class="title">Your club details have been rejected by Admin</div>
+          ? `<div class="title">${extraData?.title}</div>
         <div class="content">
             <p>Message: ${extraData?.message}</p>
             <a href="${extraData?.redirectUrl}" class="button" style="cursor:pointer;text-decoration:none;">Go to ${extraData?.clubName}</a>
@@ -200,7 +200,7 @@ const sendEmailForClubComments = async (
             Thanks,<br>
             The 365Dink Team
         </div>`
-          : `<div class="title-success">Club ${extraData?.clubName} has replied to your comment</div>
+          : `<div class="title-success">${extraData?.title}</div>
         <div class="content">
             <p>Message: ${extraData?.message}</p>
             <a href="${extraData?.redirectUrl}" class="button" style="cursor:pointer;text-decoration:none;">Go to ${extraData?.clubName}</a>
