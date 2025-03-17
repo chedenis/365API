@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const clubAuthController = require("../controllers/clubAuthController");
 const forgotOtpMobileClub = require("../middleware/forgotOtpClub");
+const clubAuthMiddleware = require("../middleware/clubAuth");
 
 // Local registration and login
 router.post("/register", clubAuthController.registerClubAuth);
@@ -31,7 +32,7 @@ router.get("/google/callback", clubAuthController.googleCallback);
 router.get("/facebook", clubAuthController.facebookAuth);
 router.get("/facebook/callback", clubAuthController.facebookCallback);
 
-router.post("/profile", clubAuthController.getProfile);
+router.post("/profile", clubAuthMiddleware, clubAuthController.getProfile);
 
 // Logout
 router.get("/logout", clubAuthController.logoutClub);
