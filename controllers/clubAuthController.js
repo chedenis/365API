@@ -66,7 +66,11 @@ exports.loginClub = (req, res, next) => {
     res.status(200).json({
       message: "Club logged in successfully",
       token,
-      clubAuth: { id: clubAuth._id, email: clubAuth.email },
+      clubAuth: {
+        id: clubAuth._id,
+        email: clubAuth.email,
+        userType: clubAuth.userType,
+      },
     });
   })(req, res, next);
 };
@@ -286,4 +290,29 @@ exports.getLoginStatus = async (req, res) => {
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)
 exports.logoutClub = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
+};
+
+exports.updateClubOwnerToAdmin = async (req, res) => {
+  try {
+    const { emailList } = req.body;
+
+    // Update users in the list to "admin"
+    await ClubAuth.updateMany(
+      { email: { $in: emailList } },
+      { $set: { userType: "admin" } }
+    );
+
+    // Update users NOT in the list to "clubOwner"
+    await ClubAuth.updateMany(
+      { email: { $nin: emailList } },
+      { $set: { userType: "clubOwner" } }
+    );
+
+    return res.status(200).json({ message: "Club updated successfully" });
+  } catch (err) {
+    console.error("Error updating club", err);
+    return res
+      .status(500)
+      .json({ error: "Error updating club", details: err.message });
+  }
 };
