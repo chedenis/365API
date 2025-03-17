@@ -102,8 +102,11 @@ exports.createComments = async (req, res) => {
             : `Club ${findClub?.clubName} has replied to your comment`,
           redirectUrl: `${process.env.FRONTEND_URL}/club/edit/${findClub?._id}`,
           clubName: findClub?.clubName,
-          message: message,
-        }
+          message: isReminder
+            ? "Please review the club details and complete the necessary steps to proceed with the approval process."
+            : message,
+        },
+        isReminder
       );
 
       // notification for create comments from club-owner to admin

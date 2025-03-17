@@ -106,7 +106,8 @@ const sendEmailForClubComments = async (
   to,
   subject,
   receiverRole = "club", // admin/club
-  extraData = {}
+  extraData = {},
+  isReminder = false
 ) => {
   try {
     // Create an SES client
@@ -202,8 +203,12 @@ const sendEmailForClubComments = async (
         </div>`
           : `<div class="title-success">${extraData?.title}</div>
         <div class="content">
-            <p>Message: ${extraData?.message}</p>
-            <a href="${extraData?.redirectUrl}" class="button" style="cursor:pointer;text-decoration:none;">Go to ${extraData?.clubName}</a>
+            <p>${isReminder ? "" : "Message:"} ${extraData?.message}</p>
+            <a href="${
+              extraData?.redirectUrl
+            }" class="button" style="cursor:pointer;text-decoration:none;">Go to ${
+              extraData?.clubName
+            }</a>
 
         </div>
         <div class="footer">
