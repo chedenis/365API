@@ -162,7 +162,7 @@ exports.googleMobileAuth = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       {
         expiresIn: "7d",
