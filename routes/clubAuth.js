@@ -31,6 +31,8 @@ router.get("/google/callback", clubAuthController.googleCallback);
 router.get("/facebook", clubAuthController.facebookAuth);
 router.get("/facebook/callback", clubAuthController.facebookCallback);
 
+router.post("/profile", clubAuthController.getProfile);
+
 // Logout
 router.get("/logout", clubAuthController.logoutClub);
 
