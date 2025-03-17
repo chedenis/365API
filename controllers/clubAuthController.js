@@ -292,6 +292,41 @@ exports.logoutClub = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
+// Logout (JWT doesn't need server-side logout unless blacklisting is implemented)
+exports.getProfile = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        message: "please provide email",
+        data: {},
+      });
+    }
+
+    const findUser = await ClubAuth.findOne({ email: email });
+    if (findUser) {
+      res.status(200).json({
+        status: true,
+        message: "Details get successfully",
+        data: findUser,
+      });
+    } else {
+      res.status(400).json({
+        status: false,
+        message: "Details not found",
+        data: {},
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: defaultServerErrorMessage,
+      data: {},
+    });
+  }
+};
+
 exports.updateClubOwnerToAdmin = async (req, res) => {
   try {
     const { emailList } = req.body;
