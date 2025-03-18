@@ -16,6 +16,7 @@ const handleSubscriptionUpdated = require("../utils/stripe/update-subscription")
 const handleInvoicePaid = require("../utils/stripe/invoice-paid");
 const handleSubscriptionDeleted = require("../utils/stripe/delete-subscription");
 const handlePaymentCreate = require("../utils/stripe/payment-create");
+const { checkMemberShipStatus } = require("../utils/common");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -126,7 +127,13 @@ exports.getUserProfile = async (req, res) => {
       user.memberId = user._id;
       await user.save();
     }
-    res.status(200).json(user);
+    const findMemberShip = await checkMemberShipStatus(user?._id);
+    res.status(200).json({
+      ...user?._doc,
+      membershipData: findMemberShip?.status
+        ? findMemberShip?.membershipData
+        : {},
+    });
   } catch (err) {
     console.error("Error fetching user profile", err);
     res

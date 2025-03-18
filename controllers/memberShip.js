@@ -1,48 +1,21 @@
 const { stripe } = require("../config/stripe");
 const { MemberShip } = require("../models");
+const { checkMemberShipStatus } = require("../utils/common");
 
 exports.checkMemberShipStatus = async (req, res) => {
-  try {
-    const userId = req.user._id;
+  const userId = req.user._id;
 
-    const membership = await MemberShip.findOne({ user: userId }).sort({
-      createdAt: -1,
-    });
-
-    if (!membership) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Membership not Found", data: {} });
-    }
-
-    // Check if membership is expired
-    const now = new Date();
-    const endDate = new Date(membership.end_date);
-
-    const isActive = membership.status === "active" && now <= endDate;
-
+  const findMembershipStatus = await checkMemberShipStatus(userId);
+  if (findMembershipStatus.status) {
     return res.status(200).json({
       status: true,
       message: "Membership status",
-      data: {
-        hasMembership: isActive,
-        membership: {
-          status: membership.status,
-          startDate: membership.start_date,
-          endDate: membership.end_date,
-          autoRenew: membership.auto_renew,
-          daysRemaining: Math.max(
-            0,
-            Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))
-          ),
-        },
-      },
+      data: findMembershipStatus.membershipData,
     });
-  } catch (error) {
-    console.error("Error checking membership status:", error);
-    return res.status(500).json({
+  } else {
+    return res.status(404).json({
       status: false,
-      error: "!!! Oops Somethings went wrong",
+      message: "Membership not found",
       data: {},
     });
   }
