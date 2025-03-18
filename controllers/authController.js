@@ -9,6 +9,7 @@ const URL = process.env.FRONTEND_URL;
 const mongoose = require("mongoose");
 const generateOTP = require("../utils/otp");
 const { sendEmail, sendEmailOTP } = require("../utils/mailer");
+const { checkMemberShipStatus } = require("../utils/common");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // JWT helper function
@@ -169,10 +170,14 @@ exports.googleMobileAuth = async (req, res) => {
       }
     );
 
+    const findMemberShip = await checkMemberShipStatus(user?._id);
     return res.json({
       message: "Login successful",
       token,
       user,
+      membershipData: findMemberShip?.status
+        ? findMemberShip?.membershipData
+        : {},
     });
   } catch (error) {
     console.error("Google Mobile Auth Error", error);
@@ -180,10 +185,10 @@ exports.googleMobileAuth = async (req, res) => {
   }
 };
 // Login with email and password
-exports.login = (req, res, next) => {
+exports.login = async (req, res, next) => {
   console.log("attempting login with email");
   console.log(req.body.email);
-  passport.authenticate("local", (err, user, info) => {
+  passport.authenticate("local", async (err, user, info) => {
     console.log("Inside passport callback...");
     if (err) {
       console.error("Authentication error", err);
@@ -197,10 +202,14 @@ exports.login = (req, res, next) => {
     const token = generateToken(user);
     console.log("we are here");
     console.log(user);
+    const findMemberShip = await checkMemberShipStatus(user?._id);
     res.status(200).json({
       message: "Logged in successfully",
       token,
       user: user,
+      membershipData: findMemberShip?.status
+        ? findMemberShip?.membershipData
+        : {},
     });
   })(req, res, next);
 };
