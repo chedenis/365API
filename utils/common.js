@@ -1,3 +1,5 @@
+const { MemberShip } = require("../models");
+
 const pageNo = 1;
 const offSet = 10;
 
@@ -54,6 +56,50 @@ exports.pagination = async (
       message: "List not fetched",
       data: [],
       pagination: {},
+    };
+  }
+};
+
+exports.checkMemberShipStatus = async (userId) => {
+  try {
+    const membership = await MemberShip.findOne({ user: userId }).sort({
+      createdAt: -1,
+    });
+
+    if (!membership) {
+      return {
+        status: false,
+        membershipData: {},
+      };
+    }
+
+    // Check if membership is expired
+    const now = new Date();
+    const endDate = new Date(membership.end_date);
+
+    const isActive = membership.status === "active" && now <= endDate;
+
+    return {
+      status: true,
+      membershipData: {
+        hasMembership: isActive,
+        membership: {
+          status: membership.status,
+          startDate: membership.start_date,
+          endDate: membership.end_date,
+          autoRenew: membership.auto_renew,
+          daysRemaining: Math.max(
+            0,
+            Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))
+          ),
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Error checking membership status:", error);
+    return {
+      status: false,
+      membershipData: {},
     };
   }
 };
