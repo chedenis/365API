@@ -9,7 +9,12 @@ const timeRangeSchema = new mongoose.Schema({
 const clubSchema = new mongoose.Schema(
   {
     clubName: { type: String, required: false },
-
+    parentClubId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Club",
+      required: false,
+    },
+    isUpdate: { type: Boolean, required: false, default: false },
     progress: {
       type: [String],
       enum: [
@@ -300,6 +305,7 @@ const clubSchema = new mongoose.Schema(
 );
 
 // Index clubName and status for faster queries
+clubSchema.index({ parentClubId: 1 });
 clubSchema.index({ clubName: 1 });
 clubSchema.index({ status: 1 });
 clubSchema.index({ location: "2dsphere" });
