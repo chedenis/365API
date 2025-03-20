@@ -167,12 +167,14 @@ exports.getClubById = async (req, res) => {
       .select("referralCode")
       .lean();
 
-    if (club == "Complete" && !latestClub) {
+    if (club?.status == "Complete" && !latestClub) {
       return res
         .status(200)
         .json({ club: club, referralCode: clubAuth?.referralCode || "" });
     } else if (
-      ["Re Approve Request", "Re Approve", "Reject"].includes(latestClub.status)
+      ["Re Approve Request", "Re Approve", "Reject"].includes(
+        latestClub?.status
+      )
     ) {
       return res
         .status(200)
