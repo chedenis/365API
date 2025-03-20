@@ -127,16 +127,16 @@ exports.readClubById = async (req, res) => {
     const { id } = req.params;
     const user = req.user;
     let club;
-    // if (user?.userType == "admin") {
-    //   club = await Club.findById(id).lean();
-    // } else {
-    club = await Club.findOne({
-      $or: [{ parentClubId: { $exists: true, $ne: null } }, { _id: id }],
-    }).lean();
-    //   if (!club) {
-    //     club = await Club.findById(id).lean();
-    //   }
-    // }
+    if (user?.userType == "admin") {
+      club = await Club.findById(id).lean();
+    } else {
+      club = await Club.findOne({
+        parentClubId: id,
+      }).lean();
+      if (!club) {
+        club = await Club.findById(id).lean();
+      }
+    }
 
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
