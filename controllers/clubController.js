@@ -157,6 +157,39 @@ exports.readClubById = async (req, res) => {
   }
 };
 
+// Public read function to get a Club or PendingClub by ID
+exports.getClubById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let club = await Club.findById(id).lean();
+    let latestClub = await Club.findOne({ parentClubId: id });
+    const clubAuth = await ClubAuth.findOne({ clubs: id })
+      .select("referralCode")
+      .lean();
+
+    if (club == "Complete" && !latestClub) {
+      return res
+        .status(200)
+        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
+    } else if (
+      ["Re Approve Request", "Re Approve", "Reject"].includes(latestClub.status)
+    ) {
+      return res
+        .status(200)
+        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Club not found", club: {}, referralCode: "" });
+    }
+  } catch (err) {
+    console.error("Error fetching club", err);
+    res
+      .status(500)
+      .json({ error: "Error fetching club", details: err.message });
+  }
+};
+
 // Create a Club and link it to ClubAuth
 exports.createClub = async (req, res) => {
   try {
