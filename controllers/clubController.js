@@ -779,6 +779,14 @@ exports.clubListTableView = async (req, res) => {
       filter["status"] = { $in: ["Ready", "Re Approve"] };
     }
 
+    if (status == "Complete") {
+      // Exclude clubs whose _id exists in another club's parentClubId
+      const clubsWithParent = await Club.distinct("parentClubId", {
+        parentClubId: { $ne: null },
+      });
+      filter["_id"] = { $nin: clubsWithParent };
+    }
+
     if (
       ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"].includes(
         status
