@@ -136,6 +136,7 @@ exports.createComments = async (req, res) => {
       data: createComments || {},
     });
   } catch (error) {
+    console.log("error", error);
     return res.status(500).json({
       status: false,
       error: "!!! Oops Somethings went wrong",
