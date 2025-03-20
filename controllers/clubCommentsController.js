@@ -43,7 +43,14 @@ exports.createComments = async (req, res) => {
     }
 
     if (["Reject"].includes(clubStatus)) {
-      await Club.findByIdAndUpdate(club, { status: clubStatus });
+      await Club.updateOne(
+        {
+          parentClubId: id,
+        },
+        {
+          status: clubStatus,
+        }
+      );
     }
 
     let createComments = "";
