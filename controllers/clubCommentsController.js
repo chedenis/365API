@@ -45,7 +45,7 @@ exports.createComments = async (req, res) => {
     if (["Reject"].includes(clubStatus)) {
       await Club.updateOne(
         {
-          parentClubId: id,
+          parentClubId: club,
         },
         {
           status: clubStatus,
