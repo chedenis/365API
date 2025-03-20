@@ -125,7 +125,18 @@ exports.readClubs = async (req, res) => {
 exports.readClubById = async (req, res) => {
   try {
     const { id } = req.params;
-    const club = await Club.findById(id).lean();
+    const user = req.user;
+    let club;
+    if (user?.userType == "admin") {
+      club = await Club.findById(id).lean();
+    } else {
+      club = await Club.findOne({
+        parentClubId: id,
+      }).lean();
+      if (!club) {
+        club = await Club.findById(id).lean();
+      }
+    }
 
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
@@ -138,6 +149,41 @@ exports.readClubById = async (req, res) => {
     return res
       .status(200)
       .json({ ...club, referralCode: clubAuth?.referralCode || "" });
+  } catch (err) {
+    console.error("Error fetching club", err);
+    res
+      .status(500)
+      .json({ error: "Error fetching club", details: err.message });
+  }
+};
+
+// Public read function to get a Club or PendingClub by ID
+exports.getClubById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let club = await Club.findById(id).lean();
+    let latestClub = await Club.findOne({ parentClubId: id });
+    const clubAuth = await ClubAuth.findOne({ clubs: id })
+      .select("referralCode")
+      .lean();
+
+    if (club?.status == "Complete" && !latestClub) {
+      return res
+        .status(200)
+        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
+    } else if (
+      ["Re Approve Request", "Re Approve", "Reject"].includes(
+        latestClub?.status
+      )
+    ) {
+      return res
+        .status(200)
+        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Club not found", club: {}, referralCode: "" });
+    }
   } catch (err) {
     console.error("Error fetching club", err);
     res
@@ -301,19 +347,43 @@ exports.updateClub = async (req, res) => {
       ...(Object.keys(unsetUpdates).length > 0 ? { $unset: unsetUpdates } : {}),
     };
 
-    const updatedClub = await Club.findByIdAndUpdate(
-      existingClub._id,
-      updateData,
-      {
-        new: true,
-        runValidators: true,
-        context: "query",
+    const updateObj = {
+      ...updateData["$set"],
+      id: undefined,
+      parentClubId: existingClub._id,
+    };
+    delete updateObj?._id;
+    let returnRecord;
+
+    if (updateData.status == "Complete") {
+      returnRecord = await Club.findByIdAndUpdate(
+        existingClub._id,
+        { ...updateData, parentClubId: "" },
+        {
+          new: true,
+          runValidators: true,
+          context: "query",
+        }
+      );
+      await Club.deleteMany({ parentId: existingClub._id });
+    } else {
+      const findChildRecord = await Club.findOne({
+        parentClubId: existingClub._id,
+      });
+      if (findChildRecord) {
+        delete updateData["$set"]["_id"];
+        returnRecord = await Club.findByIdAndUpdate(
+          findChildRecord?._id,
+          updateData
+        );
+      } else {
+        returnRecord = await Club.create(updateObj);
       }
-    );
+    }
 
     res
       .status(200)
-      .json({ message: "Club updated successfully", club: updatedClub });
+      .json({ message: "Club updated successfully", club: returnRecord });
   } catch (err) {
     console.error("Error updating club", err);
     res
@@ -419,38 +489,105 @@ const cleanUpInvalidValues = (club) => {
   );
 };
 
-// Promote PendingClub to Club
+// // Promote PendingClub to Club
+// exports.promoteToClub = async (req, res) => {
+//   try {
+//     const { id } = req.params; // Get the club ID from the URL parameters
+//     let club = await Club.findOne({ _id: id }); // Find the club by its ID
+//     const findChildClub = await Club.findOne({ parentClubId: id });
+//     delete findChildClub.id;
+
+//     if (findChildClub) {
+//       // console.log("findChildClub", findChildClub);
+//       club = { ...club._doc, ...findChildClub };
+//     }
+//     console.log("club", club);
+//     if (!club) {
+//       return res.status(404).json({ error: "Club not found" });
+//     }
+
+//     cleanUpInvalidValues(club);
+//     const fullAddress = `${club?.address?.street}, ${club?.address?.city}, ${club?.address?.state} ${club?.address?.zip}, ${club?.address?.country}`;
+//     const { latitude, longitude } = await getCoordinates(fullAddress);
+
+//     // if (club?.mailingAddress?.street !== club?.mailingAddress?.street) {
+//     // }
+//     console.log("latitude, longitude", latitude, longitude);
+//     // Update the location field with GeoJSON coordinates (longitude, latitude)
+//     console.log("club", club?.address);
+//     if (club?.address) {
+//       club.address.location = {
+//         type: "Point",
+//         coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+//       };
+//     }
+
+//     club.location = {
+//       type: "Point",
+//       coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+//     };
+
+//     club.status = "Complete";
+//     club.isUpdate = true;
+
+//     await Club.findByIdAndUpdate(club?.id, club?._doc);
+
+//     await Club.deleteMany({ parentClubId: id });
+//     res
+//       .status(200)
+//       .json({ message: "Pending Club promoted to Club successfully", club });
+//   } catch (err) {
+//     console.error("Error promoting pending club to club", err);
+//     res.status(500).json({
+//       error: "Error promoting pending club to club",
+//       details: err.message,
+//     });
+//   }
+// };
 exports.promoteToClub = async (req, res) => {
   try {
     const { id } = req.params; // Get the club ID from the URL parameters
-    const club = await Club.findById(id); // Find the club by its ID
+    let club = await Club.findOne({ _id: id }); // Find the club by its ID
+
     if (!club) {
       return res.status(404).json({ error: "Club not found" });
     }
+
+    const findChildClub = await Club.findOne({ parentClubId: id });
+    delete findChildClub?._doc?._id;
+    delete findChildClub?._doc?.parentClubId;
+    if (findChildClub) {
+      // Merge fields from findChildClub._doc into club
+      club = { ...club._doc, ...findChildClub._doc };
+    }
+
+    console.log("club after merging:", club);
 
     cleanUpInvalidValues(club);
     const fullAddress = `${club?.address?.street}, ${club?.address?.city}, ${club?.address?.state} ${club?.address?.zip}, ${club?.address?.country}`;
     const { latitude, longitude } = await getCoordinates(fullAddress);
 
-    // if (club?.mailingAddress?.street !== club?.mailingAddress?.street) {
-    // }
     console.log("latitude, longitude", latitude, longitude);
-    // Update the location field with GeoJSON coordinates (longitude, latitude)
-    console.log("club", club?.address);
+
     if (club?.address) {
       club.address.location = {
         type: "Point",
-        coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+        coordinates: [longitude, latitude], // GeoJSON format
       };
     }
 
     club.location = {
       type: "Point",
-      coordinates: [longitude, latitude], // [longitude, latitude] as per GeoJSON format
+      coordinates: [longitude, latitude], // GeoJSON format
     };
 
     club.status = "Complete";
-    await club.save();
+    club.isUpdate = true;
+
+    // Find the document by ID and update it
+    await Club.findByIdAndUpdate(id, club);
+
+    await Club.deleteMany({ parentClubId: id });
 
     res
       .status(200)
@@ -640,6 +777,25 @@ exports.clubListTableView = async (req, res) => {
 
     if (status == "Re Approve") {
       filter["status"] = { $in: ["Ready", "Re Approve"] };
+    }
+
+    if (status == "Complete") {
+      // Exclude clubs whose _id exists in another club's parentClubId
+      const clubsWithParent = await Club.distinct("parentClubId", {
+        parentClubId: { $ne: null },
+      });
+      filter["_id"] = { $nin: clubsWithParent };
+    }
+
+    if (
+      ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"].includes(
+        status
+      )
+    ) {
+      filter["$or"] = [
+        { parentClubId: { $exists: true, $ne: null } },
+        { _id: { $exists: true, $ne: null } },
+      ];
     }
 
     const clubAuthFilter = {};

@@ -43,7 +43,14 @@ exports.createComments = async (req, res) => {
     }
 
     if (["Reject"].includes(clubStatus)) {
-      await Club.findByIdAndUpdate(club, { status: clubStatus });
+      await Club.updateOne(
+        {
+          parentClubId: club,
+        },
+        {
+          status: clubStatus,
+        }
+      );
     }
 
     let createComments = "";
@@ -129,6 +136,7 @@ exports.createComments = async (req, res) => {
       data: createComments || {},
     });
   } catch (error) {
+    console.log("error", error);
     return res.status(500).json({
       status: false,
       error: "!!! Oops Somethings went wrong",
