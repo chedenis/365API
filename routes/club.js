@@ -13,6 +13,7 @@ router.get("/read", clubAuthMiddleware, clubController.readClubs);
 
 // Public route to read a club or pending club by ID
 router.get("/read/:id", clubController.readClubById);
+router.get("/get-map-details/:id", clubController.getClubById);
 
 // Create a new PendingClub (public, no authentication needed)
 router.post("/create", clubAuthMiddleware, clubController.createClub);
