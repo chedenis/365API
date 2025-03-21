@@ -124,7 +124,7 @@ exports.webViewUrl = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Url get successfully",
-      url: `${process.env.FRONTEND_URL}/club/type?token=${token}`,
+      url: `${process.env.FRONTEND_URL}/member/type?token=${token}`,
     });
   } catch (error) {
     return res.status(500).json({
