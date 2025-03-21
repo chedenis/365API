@@ -478,6 +478,42 @@ exports.appleLogin = async (req, res, next) => {
   }
 };
 
+exports.checkRecordForAppleLogin = async (req, res) => {
+  try {
+    const { appleId } = req.body;
+    let findExistRecord = await Auth.findOne({ appleId: appleId });
+
+    if (findExistRecord) {
+      const findUser = await User.findById(findExistRecord?.user);
+      const token = await generateToken(findUser);
+      return res.status(200).json({
+        message: "Record already exist",
+        status: true,
+        isRecordExist: true,
+        user: findUser,
+        token: token,
+      });
+    } else {
+      return res.status(200).json({
+        message: "Record not found",
+        status: true,
+        isRecordExist: false,
+        user: {},
+        token: "",
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    return res.status(200).json({
+      message: defaultServerErrorMessage,
+      status: false,
+      isRecordExist: false,
+      user: {},
+      token: "",
+    });
+  }
+};
+
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)
 exports.logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
