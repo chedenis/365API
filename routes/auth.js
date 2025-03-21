@@ -27,6 +27,12 @@ router.post("/google-signin", AuthController.googleMobileAuth);
 router.get("/facebook", AuthController.facebookAuth);
 router.get("/facebook/callback", AuthController.facebookCallback);
 
+router.post("/apple-login", AuthController.appleLogin);
+router.post(
+  "/check-apple-login-record",
+  AuthController.checkRecordForAppleLogin
+);
+
 // Check session or login status
 router.post("/status", AuthController.getLoginStatus);
 

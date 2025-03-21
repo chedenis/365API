@@ -9,7 +9,10 @@ const URL = process.env.FRONTEND_URL;
 const mongoose = require("mongoose");
 const generateOTP = require("../utils/otp");
 const { sendEmail, sendEmailOTP } = require("../utils/mailer");
-const { checkMemberShipStatus } = require("../utils/common");
+const {
+  checkMemberShipStatus,
+  defaultServerErrorMessage,
+} = require("../utils/common");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // JWT helper function
@@ -17,7 +20,7 @@ const generateToken = (user) => {
   return jwt.sign(
     {
       id: user._id,
-      email: user.email,
+      email: user?.email,
     },
     process.env.JWT_SECRET,
     { expiresIn: "48h" } // Adjust expiration as needed
@@ -431,6 +434,84 @@ exports.facebookCallback = (req, res, next) => {
 
     res.redirect(`${process.env.WEB_SUCCESS_REDIRECT}?token=${token}`);
   })(req, res, next);
+};
+
+exports.appleLogin = async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, appleId } = req.body;
+    let findExistRecord = await Auth.findOne({ email: email });
+
+    if (findExistRecord) {
+      const findUser = await User.findById(findExistRecord?.user);
+      const token = await generateToken(findUser);
+      return res.status(200).json({
+        message: "User login successfully",
+        token: token,
+        user: findUser,
+      });
+    } else {
+      const newAuth = new Auth({
+        email,
+        appleId: appleId,
+        socialType: "apple",
+      });
+
+      const newUser = new User({ firstName, lastName, email });
+      await newUser.save();
+      newAuth.user = newUser?._id;
+      await newAuth.save();
+
+      const token = await generateToken(newUser);
+
+      return res.status(200).json({
+        message: "New User login successfully",
+        token: token,
+        user: newUser,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      data: {},
+    });
+  }
+};
+
+exports.checkRecordForAppleLogin = async (req, res) => {
+  try {
+    const { appleId } = req.body;
+    let findExistRecord = await Auth.findOne({ appleId: appleId });
+
+    if (findExistRecord) {
+      const findUser = await User.findById(findExistRecord?.user);
+      const token = await generateToken(findUser);
+      return res.status(200).json({
+        message: "Record already exist",
+        status: true,
+        isRecordExist: true,
+        user: findUser,
+        token: token,
+      });
+    } else {
+      return res.status(200).json({
+        message: "Record not found",
+        status: true,
+        isRecordExist: false,
+        user: {},
+        token: "",
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    return res.status(200).json({
+      message: defaultServerErrorMessage,
+      status: false,
+      isRecordExist: false,
+      user: {},
+      token: "",
+    });
+  }
 };
 
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)

@@ -12,6 +12,7 @@ const createPayment = async (stripeCustomerId, userId) => {
         },
       ],
       mode: "subscription",
+      allow_promotion_codes: true,
       success_url: `${process.env.FRONTEND_URL}/member/payment/success`,
       cancel_url: `${process.env.FRONTEND_URL}/member/payment/fail`,
       metadata: {
