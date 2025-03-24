@@ -5,6 +5,7 @@ const {
   updateUserProfile,
   generateMemberPresignedUrl,
   checkMemberShipStatus,
+  updateMemberIdWithSerialNumber,
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/auth");
 
@@ -19,5 +20,6 @@ router.patch("/profile", authMiddleware, updateUserProfile);
 // );
 
 router.post("/generate-upload-url", authMiddleware, generateMemberPresignedUrl);
+router.get("/update-memberId", authMiddleware, updateMemberIdWithSerialNumber);
 
 module.exports = router;
