@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+var randomstring = require("randomstring");
 
 // Determine the environment-specific model name for User
 let userModelName = "User";
@@ -58,6 +59,14 @@ const authSchema = new mongoose.Schema(
           : process.env.NODE_ENV === "qa"
           ? "UserQA"
           : "User", // Explicit environment-based model name, // Use the model name string directly
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    randomString: {
+      type: String,
+      default: randomstring.generate(),
     },
   },
   {

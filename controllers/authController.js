@@ -8,7 +8,11 @@ const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 const mongoose = require("mongoose");
 const generateOTP = require("../utils/otp");
-const { sendEmail, sendEmailOTP } = require("../utils/mailer");
+const {
+  sendEmail,
+  sendEmailOTP,
+  sendEmailForRegister,
+} = require("../utils/mailer");
 const {
   checkMemberShipStatus,
   defaultServerErrorMessage,
@@ -66,37 +70,47 @@ exports.register = async (req, res) => {
     }
 
     // Check if the user already exists
-    const existingAuth = await Auth.findOne({ email });
+    const existingAuth = await Auth.findOne({ email, isVerified: true });
     if (existingAuth) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    // Create the User
-    const newUser = new User({ email, firstName, lastName });
-    await newUser.save();
+    const findByInactiveUser = await Auth.findOne({ email, isVerified: false });
+    if (existingAuth) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-    // Create the Auth record; pass plaintext password
-    const newAuth = new Auth({
-      email,
-      password, // Plaintext password; the hook will hash it
-      user: newUser._id,
-    });
+    if (findByInactiveUser) {
+      await sendEmailForRegister(email, "Registration email", "member", {
+        email: email,
+        link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
+      });
+      return res
+        .status(409)
+        .json({ error: "User already exist please verify it" });
+    } else {
+      // Create the User
+      const newUser = new User({ email, firstName, lastName });
+      await newUser.save();
 
-    await newAuth.save();
+      // Create the Auth record; pass plaintext password
+      const newAuth = new Auth({
+        email,
+        password, // Plaintext password; the hook will hash it
+        user: newUser._id,
+      });
 
-    // Generate a token
-    const token = await generateToken(newUser);
+      await newAuth.save();
 
-    res.status(201).json({
-      message: "User registered successfully",
-      token,
-      user: {
-        id: newUser._id,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-      },
-    });
+      await sendEmailForRegister(email, "Registration email", "member", {
+        email: email,
+        link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${newAuth?.randomString}`,
+      });
+
+      res.status(201).json({
+        message: "User registered successfully please verify to login",
+      });
+    }
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
@@ -517,4 +531,58 @@ exports.checkRecordForAppleLogin = async (req, res) => {
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)
 exports.logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
+};
+
+exports.verifyUser = async (req, res) => {
+  try {
+    const { confirmation_token } = req.query;
+
+    if (!confirmation_token) {
+      return res
+        .status(400)
+        .json({ message: "Token is required", status: false });
+    }
+
+    const findUser = await Auth.findOne({ randomString: confirmation_token });
+    if (!findUser) {
+      return res.status(404).json({ message: "User not found", status: false });
+    } else if (findUser?.isVerified) {
+      return res
+        .status(409)
+        .json({ message: "User already verified", status: false });
+    } else {
+      await Auth.findByIdAndUpdate(findUser?._id, {
+        isVerified: true,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "User verified successfully",
+      });
+    }
+  } catch (err) {
+    console.error("Error during registration:", err);
+    res.status(500).json({ error: "Error registering user" });
+  }
+};
+
+exports.makeEveryMemberVerified = async (req, res) => {
+  try {
+    const users = await Auth.find({});
+
+    for (let i = 0; i < users.length; i++) {
+      await Auth.findByIdAndUpdate(users[i]._id, {
+        isVerified: true,
+      });
+    }
+    return res.status(200).json({
+      message: "User verified successfully",
+      status: true,
+    });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
+  }
 };

@@ -39,4 +39,8 @@ router.post("/status", AuthController.getLoginStatus);
 // Logout
 router.get("/logout", AuthController.logout);
 
+router.get("/update-old-user-verified", AuthController.makeEveryMemberVerified);
+
+router.get("/verify", AuthController.verifyUser);
+
 module.exports = router;

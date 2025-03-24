@@ -37,4 +37,11 @@ router.post("/profile", clubAuthMiddleware, clubAuthController.getProfile);
 // Logout
 router.get("/logout", clubAuthController.logoutClub);
 
+router.get(
+  "/update-old-club-owner-verified",
+  clubAuthController.makeEveryClubOwnerVerified
+);
+
+router.get("/verify", clubAuthController.verifyUser);
+
 module.exports = router;
