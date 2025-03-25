@@ -381,12 +381,7 @@ const sendEmailForRegister = async (
 
         <div class="wrapper">
             <p class="title">Thank you for signing up for 365Dink.</p>
-            <p class="confirm">Check the confirmation email at <span style="color: ${
-              receiverRole == "club" ? "#37C597" : "rgb(255, 6, 230)"
-            };
-            font-weight: bold;
-            text-decoration: none !important;" >${extraData?.email}</span>
-            </p>
+            <p class="confirm">Verify your email address by clicking the button below</p>
             <a href="${extraData?.link}" class="button">Confirm my account</a>
         </div>
 
