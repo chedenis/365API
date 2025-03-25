@@ -79,7 +79,7 @@ exports.loginClub = (req, res, next) => {
       return res.status(400).json({ error: info.message });
     }
 
-    if (!auth?.isVerified) {
+    if (!clubAuth?.isVerified) {
       return done(null, false, {
         message: "Please verify to login",
       });

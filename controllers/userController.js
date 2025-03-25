@@ -222,7 +222,7 @@ exports.updateMemberIdWithSerialNumber = async (req, res) => {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const newMemberId = (i + 1).toString().padStart(4, "0");
+      const newMemberId = (i + 1).toString().padStart(6, "0");
 
       // // Update the user
       await User.findByIdAndUpdate(user._id, {

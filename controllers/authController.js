@@ -90,7 +90,7 @@ exports.register = async (req, res) => {
         });
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
-        return res.status(200).json({
+        return res.status(409).json({
           error: "User already exist please verify it",
           token: getOtpJwtToken(findByInactiveUser),
         });
@@ -119,7 +119,7 @@ exports.register = async (req, res) => {
       if (isMobile) {
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          error: "User registered successfully please verify to login",
+          message: "User registered successfully please verify to login",
           token: getOtpJwtToken(newAuth),
         });
       } else {
@@ -560,11 +560,15 @@ exports.checkRecordForAppleLogin = async (req, res) => {
     if (findExistRecord) {
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
+      const findMemberShip = await checkMemberShipStatus(findUser?._id);
       return res.status(200).json({
         message: "Record already exist",
         status: true,
         isRecordExist: true,
         user: findUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
         token: token,
       });
     } else {

@@ -59,7 +59,7 @@ userSchema.pre("save", async function (next) {
       const currentNum = parseInt(highestUser.memberId);
       if (!isNaN(currentNum)) {
         // Format with leading zeros
-        newMemberId = (currentNum + 1).toString().padStart(4, "0");
+        newMemberId = (currentNum + 1).toString().padStart(6, "0");
       } else {
         // If parsing failed, start with 0001
         newMemberId = "0001";

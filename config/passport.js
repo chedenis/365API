@@ -92,6 +92,7 @@ passport.use(
             googleId: profile?.id,
             email,
             user: newUser?._id,
+            isVerified: true,
           });
           await newAuth.save();
 
@@ -152,6 +153,7 @@ passport.use(
             facebookId: profile?.id,
             username: email,
             user: newUser?._id,
+            isVerified: true,
           });
           await newAuth.save();
 

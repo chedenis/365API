@@ -779,12 +779,38 @@ exports.clubListTableView = async (req, res) => {
       filter["status"] = { $in: ["Ready", "Re Approve"] };
     }
 
+    // if (status == "Complete") {
+    //   // Exclude clubs whose _id exists in another club's parentClubId
+    //   const clubsWithParent = await Club.distinct("parentClubId", {
+    //     parentClubId: { $ne: null },
+    //   });
+    //   filter["_id"] = { $nin: clubsWithParent };
+    // }
+
     if (status == "Complete") {
-      // Exclude clubs whose _id exists in another club's parentClubId
-      const clubsWithParent = await Club.distinct("parentClubId", {
-        parentClubId: { $ne: null },
-      });
-      filter["_id"] = { $nin: clubsWithParent };
+      // Fetch parent clubs whose status is "Complete"
+      const parentClubs = await Club.find({ status: "Complete" }).select("_id");
+
+      // Extract parent club IDs
+      const parentClubIds = parentClubs.map((club) => club._id);
+
+      // Fetch child clubs that belong to these parent clubs and have "Re Approve Request" status
+      const childClubs = await Club.find({
+        parentClubId: { $in: parentClubIds },
+        status: "Re Approve Request",
+      }).select("_id");
+
+      // Include both standalone clubs that are complete and child clubs that need re-approval
+      filter["$or"] = [
+        {
+          _id: {
+            $nin: await Club.distinct("parentClubId", {
+              parentClubId: { $ne: null },
+            }),
+          },
+        }, // Clubs without a parent (standalone clubs)
+        { _id: { $in: childClubs.map((club) => club._id) } }, // Child clubs needing re-approval
+      ];
     }
 
     if (
