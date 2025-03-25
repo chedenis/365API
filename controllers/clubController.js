@@ -350,7 +350,6 @@ exports.updateClub = async (req, res) => {
     const updateObj = {
       ...updateData["$set"],
       id: undefined,
-      parentClubId: existingClub._id,
     };
 
     function checkImageExist(imageType) {
@@ -369,6 +368,7 @@ exports.updateClub = async (req, res) => {
 
     await Club.findByIdAndUpdate(existingClub._id, {
       ...oldDataUpdateObj,
+      parentClubId: "",
       status:
         existingClub?.status == "Complete"
           ? "Complete"
@@ -380,32 +380,23 @@ exports.updateClub = async (req, res) => {
     delete updateObj?._id;
     let returnRecord;
     console.log("updateData", updateData);
-    if (updateData.status == "Complete") {
-      returnRecord = await Club.findByIdAndUpdate(
-        existingClub._id,
-        { ...updateData, parentClubId: "" },
-        {
-          new: true,
-          runValidators: true,
-          context: "query",
-        }
-      );
-      await Club.deleteMany({ parentId: existingClub._id });
+
+    const findChildRecord = await Club.findOne({
+      parentClubId: existingClub._id,
+    });
+    console.log("updateData", updateData);
+    if (findChildRecord) {
+      delete updateData["$set"]["_id"];
+      returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
+        ...updateData,
+        profileImage: profileImage,
+        featuredImage: featuredImage,
+      });
     } else {
-      const findChildRecord = await Club.findOne({
+      returnRecord = await Club.create({
+        ...updateObj,
         parentClubId: existingClub._id,
       });
-      console.log("updateData", updateData);
-      if (findChildRecord) {
-        delete updateData["$set"]["_id"];
-        returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
-          ...updateData,
-          profileImage: profileImage,
-          featuredImage: featuredImage,
-        });
-      } else {
-        returnRecord = await Club.create(updateObj);
-      }
     }
 
     res
