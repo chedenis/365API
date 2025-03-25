@@ -368,7 +368,6 @@ exports.updateClub = async (req, res) => {
 
     await Club.findByIdAndUpdate(existingClub._id, {
       ...oldDataUpdateObj,
-      parentClubId: "",
       status:
         existingClub?.status == "Complete"
           ? "Complete"
