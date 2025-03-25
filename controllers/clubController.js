@@ -352,6 +352,21 @@ exports.updateClub = async (req, res) => {
       id: undefined,
       parentClubId: existingClub._id,
     };
+
+    function checkImageExist(imageType) {
+      const abcd = ["profileImage", "featuredImage"];
+      return abcd.includes(imageType);
+    }
+    let oldDataUpdateObj = updateData["$set"];
+    if (checkImageExist("profileImage")) {
+      delete oldDataUpdateObj?.profileImage;
+    }
+    if (checkImageExist("featuredImage")) {
+      delete oldDataUpdateObj?.featuredImage;
+    }
+
+    await Club.findByIdAndUpdate(existingClub._id, oldDataUpdateObj);
+
     delete updateObj?._id;
     let returnRecord;
 
@@ -383,7 +398,7 @@ exports.updateClub = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "Club updated successfully", club: returnRecord });
+      .json({ message: "Club updated successfully", club: req?.body });
   } catch (err) {
     console.error("Error updating club", err);
     res
@@ -779,39 +794,35 @@ exports.clubListTableView = async (req, res) => {
       filter["status"] = { $in: ["Ready", "Re Approve"] };
     }
 
-    // if (status == "Complete") {
-    //   // Exclude clubs whose _id exists in another club's parentClubId
-    //   const clubsWithParent = await Club.distinct("parentClubId", {
-    //     parentClubId: { $ne: null },
-    //   });
-    //   filter["_id"] = { $nin: clubsWithParent };
-    // }
+    let distinctClubNames = await Club.distinct("clubName", filter);
 
-    if (status == "Complete") {
-      // Fetch parent clubs whose status is "Complete"
-      const parentClubs = await Club.find({ status: "Complete" }).select("_id");
+    // Modify the filter to only include the first occurrence of each club name
+    // with priority given to records with parentClubId
+    const clubsWithDistinctNames = [];
 
-      // Extract parent club IDs
-      const parentClubIds = parentClubs.map((club) => club._id);
+    for (const name of distinctClubNames) {
+      // First try to find a club with this name that has a parentClubId
+      let club = await Club.findOne({
+        ...filter,
+        clubName: name,
+        parentClubId: { $exists: true, $ne: null },
+      }).sort({ createdAt: 1 });
 
-      // Fetch child clubs that belong to these parent clubs and have "Re Approve Request" status
-      const childClubs = await Club.find({
-        parentClubId: { $in: parentClubIds },
-        status: "Re Approve Request",
-      }).select("_id");
+      // If no club with parentClubId found, get any club with this name
+      if (!club) {
+        club = await Club.findOne({
+          ...filter,
+          clubName: name,
+        }).sort({ createdAt: 1 });
+      }
 
-      // Include both standalone clubs that are complete and child clubs that need re-approval
-      filter["$or"] = [
-        {
-          _id: {
-            $nin: await Club.distinct("parentClubId", {
-              parentClubId: { $ne: null },
-            }),
-          },
-        }, // Clubs without a parent (standalone clubs)
-        { _id: { $in: childClubs.map((club) => club._id) } }, // Child clubs needing re-approval
-      ];
+      if (club) {
+        clubsWithDistinctNames.push(club._id);
+      }
     }
+
+    // Update the filter to only include these specific clubs
+    filter._id = { $in: clubsWithDistinctNames };
 
     if (
       ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"].includes(

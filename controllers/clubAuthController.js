@@ -59,7 +59,8 @@ exports.registerClubAuth = async (req, res) => {
       });
 
       return res.status(200).json({
-        message: "Club owner registered successfully please verify to login",
+        message:
+          "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
       });
     }
   } catch (error) {
@@ -80,9 +81,7 @@ exports.loginClub = (req, res, next) => {
     }
 
     if (!clubAuth?.isVerified) {
-      return done(null, false, {
-        message: "Please verify to login",
-      });
+      return res.status(400).json({ message: "Please verify the user" });
     }
 
     const token = generateToken(clubAuth);

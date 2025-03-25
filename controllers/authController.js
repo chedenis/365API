@@ -91,7 +91,7 @@ exports.register = async (req, res) => {
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(409).json({
-          error: "User already exist please verify it",
+          error: "Member already exist please verify it",
           token: getOtpJwtToken(findByInactiveUser),
         });
       } else {
@@ -99,9 +99,10 @@ exports.register = async (req, res) => {
           email: email,
           link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
         });
-        return res
-          .status(200)
-          .json({ error: "User already exist please verify it" });
+        return res.status(200).json({
+          error:
+            "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
+        });
       }
     } else {
       const newUser = new User({ email, firstName, lastName });
@@ -608,7 +609,7 @@ exports.verifyUser = async (req, res) => {
     }
 
     const findUser = await Auth.findOne({ randomString: confirmation_token });
-    if (!findUser) {
+    if (!findUser?.isVerified) {
       return res.status(404).json({ message: "User not found", status: false });
     } else if (findUser?.isVerified) {
       return res
