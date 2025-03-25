@@ -366,8 +366,9 @@ exports.updateClub = async (req, res) => {
       delete oldDataUpdateObj?.featuredImage;
     }
 
+    const { parentClubId, ...rest } = oldDataUpdateObj;
     await Club.findByIdAndUpdate(existingClub._id, {
-      ...oldDataUpdateObj,
+      ...rest,
       status:
         existingClub?.status == "Complete"
           ? "Complete"
