@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+var randomstring = require("randomstring");
 
 // Determine the environment-specific model name for Club
 let clubModelName = "Club";
@@ -58,6 +59,14 @@ const clubAuthSchema = new mongoose.Schema(
       type: String,
       enum: ["clubOwner", "admin"],
       default: "clubOwner",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    randomString: {
+      type: String,
+      default: randomstring.generate(),
     },
   },
   {

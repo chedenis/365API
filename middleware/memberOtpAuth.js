@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
-const { ClubAuth } = require("../models");
+const { Auth } = require("../models");
 
-async function forgotOtpMobileClub(req, res, next) {
+async function OtpMobileMember(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -11,7 +11,7 @@ async function forgotOtpMobileClub(req, res, next) {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_OTP_CLUB);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_OTP_MEMBER);
 
     if (!decoded || !decoded.id) {
       return res
@@ -19,12 +19,12 @@ async function forgotOtpMobileClub(req, res, next) {
         .json({ error: "Forbidden: Invalid token payload" });
     }
 
-    const findClubAuth = await ClubAuth.findById(decoded.id);
-    if (!findClubAuth) {
+    const findUser = await Auth.findById(decoded.id);
+    if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    req.user = findClubAuth; // Attach the authenticated club user to the request
+    req.user = findUser; // Attach the authenticated club user to the request
     next(); // Proceed to the next middleware or route handler
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
@@ -37,4 +37,4 @@ async function forgotOtpMobileClub(req, res, next) {
   }
 }
 
-module.exports = forgotOtpMobileClub;
+module.exports = OtpMobileMember;

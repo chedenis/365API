@@ -20,6 +20,12 @@ passport.use(
           });
         }
 
+        if (!auth?.isVerified) {
+          return done(null, false, {
+            message: "Please verify to login",
+          });
+        }
+
         // If password comparison still fails, check their actual values
         const isMatch = bcrypt.compareSync(
           password.trim(),

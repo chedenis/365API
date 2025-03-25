@@ -4,7 +4,7 @@ const {
   S3Client,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
-const { User, MemberShip } = require("../models");
+const { User, MemberShip, Auth } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
