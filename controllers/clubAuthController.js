@@ -370,7 +370,7 @@ exports.verifyUser = async (req, res) => {
         .json({ message: "Club owner not found", status: false });
     } else if (findUser?.isVerified) {
       return res
-        .status(409)
+        .status(400)
         .json({ message: "Club owner already verified", status: false });
     } else {
       await ClubAuth.findByIdAndUpdate(findUser?._id, {
