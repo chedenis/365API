@@ -354,10 +354,12 @@ exports.updateClub = async (req, res) => {
     };
 
     function checkImageExist(imageType) {
-      const abcd = ["profileImage", "featuredImage"];
-      return abcd.includes(imageType);
+      const imageFieldList = updateObj?.updatedFields || [];
+      return imageFieldList.includes(imageType);
     }
     let oldDataUpdateObj = updateData["$set"];
+    const profileImage = updateObj?.profileImage;
+    const featuredImage = updateObj?.featuredImage;
     if (checkImageExist("profileImage")) {
       delete oldDataUpdateObj?.profileImage;
     }
@@ -369,7 +371,7 @@ exports.updateClub = async (req, res) => {
 
     delete updateObj?._id;
     let returnRecord;
-
+    console.log("updateData", updateData);
     if (updateData.status == "Complete") {
       returnRecord = await Club.findByIdAndUpdate(
         existingClub._id,
@@ -385,12 +387,14 @@ exports.updateClub = async (req, res) => {
       const findChildRecord = await Club.findOne({
         parentClubId: existingClub._id,
       });
+      console.log("updateData", updateData);
       if (findChildRecord) {
         delete updateData["$set"]["_id"];
-        returnRecord = await Club.findByIdAndUpdate(
-          findChildRecord?._id,
-          updateData
-        );
+        returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
+          ...updateData,
+          profileImage: profileImage,
+          featuredImage: featuredImage,
+        });
       } else {
         returnRecord = await Club.create(updateObj);
       }
