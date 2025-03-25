@@ -34,7 +34,7 @@ exports.registerClubAuth = async (req, res) => {
       isVerified: true,
     });
     if (existingClubAuth) {
-      return res.status(400).json({ error: "Club owner already exist" });
+      return res.status(409).json({ error: "Club owner already exist" });
     }
 
     const findByInactiveClubOwner = await ClubAuth.findOne({
@@ -42,8 +42,12 @@ exports.registerClubAuth = async (req, res) => {
       isVerified: false,
     });
     if (findByInactiveClubOwner) {
+      await sendEmailForRegister(email, "Registration email", "club", {
+        email: email,
+        link: `${process.env.FRONTEND_URL}/club/confirmation?confirmation_token=${findByInactiveClubOwner?.randomString}`,
+      });
       return res
-        .status(400)
+        .status(200)
         .json({ error: "Club owner already exist please verify it" });
     } else {
       const newClubAuth = new ClubAuth({ email, password, referralCode });
@@ -54,7 +58,7 @@ exports.registerClubAuth = async (req, res) => {
         link: `${process.env.FRONTEND_URL}/club/confirmation?confirmation_token=${newClubAuth?.randomString}`,
       });
 
-      return res.status(201).json({
+      return res.status(200).json({
         message: "Club owner registered successfully please verify to login",
       });
     }

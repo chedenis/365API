@@ -1,10 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const AuthController = require("../controllers/authController");
-const forgotOtpMobileMember = require("../middleware/forgotOtpMember");
+const OtpMobileMember = require("../middleware/memberOtpAuth");
 
 // Registration route
 router.post("/register", AuthController.register);
+router.post(
+  "/register-verify-otp",
+  OtpMobileMember,
+  AuthController.registerVerifyOtp
+);
 
 // Email and password login
 router.post("/login", AuthController.login);
@@ -14,7 +19,7 @@ router.get("/validate-token/:id", AuthController.validateToken);
 router.post("/reset-password", AuthController.resetPassword);
 router.post(
   "/reset-password-mobile",
-  forgotOtpMobileMember,
+  OtpMobileMember,
   AuthController.resetPasswordMobile
 );
 

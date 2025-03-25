@@ -12,6 +12,7 @@ const {
   sendEmail,
   sendEmailOTP,
   sendEmailForRegister,
+  sendRegisterEmailOTP,
 } = require("../utils/mailer");
 const {
   checkMemberShipStatus,
@@ -63,7 +64,7 @@ exports.getLoginStatus = async (req, res) => {
 // Register a new user
 exports.register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -76,44 +77,95 @@ exports.register = async (req, res) => {
     }
 
     const findByInactiveUser = await Auth.findOne({ email, isVerified: false });
-    if (existingAuth) {
-      return res.status(400).json({ error: "User already exists" });
+
+    let otp;
+    if (isMobile) {
+      otp = await generateOTP();
     }
 
     if (findByInactiveUser) {
-      await sendEmailForRegister(email, "Registration email", "member", {
-        email: email,
-        link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
-      });
-      return res
-        .status(409)
-        .json({ error: "User already exist please verify it" });
+      if (isMobile) {
+        await Auth.findByIdAndUpdate(findByInactiveUser?._id, {
+          otp: otp,
+        });
+
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+        return res.status(200).json({
+          error: "User already exist please verify it",
+          token: getOtpJwtToken(findByInactiveUser),
+        });
+      } else {
+        await sendEmailForRegister(email, "Registration email", "member", {
+          email: email,
+          link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
+        });
+        return res
+          .status(200)
+          .json({ error: "User already exist please verify it" });
+      }
     } else {
-      // Create the User
       const newUser = new User({ email, firstName, lastName });
       await newUser.save();
 
-      // Create the Auth record; pass plaintext password
       const newAuth = new Auth({
         email,
-        password, // Plaintext password; the hook will hash it
+        password,
         user: newUser._id,
+        otp: otp || "",
       });
 
       await newAuth.save();
 
-      await sendEmailForRegister(email, "Registration email", "member", {
-        email: email,
-        link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${newAuth?.randomString}`,
-      });
-
-      res.status(201).json({
-        message: "User registered successfully please verify to login",
-      });
+      if (isMobile) {
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+        return res.status(200).json({
+          error: "User registered successfully please verify to login",
+          token: getOtpJwtToken(newAuth),
+        });
+      } else {
+        await sendEmailForRegister(email, "Registration email", "member", {
+          email: email,
+          link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${newAuth?.randomString}`,
+        });
+        return res.status(200).json({
+          message: "User registered successfully please verify to login",
+        });
+      }
     }
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
+  }
+};
+
+exports.registerVerifyOtp = async (req, res) => {
+  const user = req.user;
+  const { otp } = req.body;
+
+  try {
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required" });
+    }
+
+    if (user.otp != otp) {
+      return res.status(404).json({ message: "Invalid OTP" });
+    }
+
+    user.otp = "";
+    user.isVerified = true;
+    await user.save();
+
+    const token = generateToken(user);
+    return res.status(200).json({
+      message: "User verified successfully",
+      token: token,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+      error: error.message,
+    });
   }
 };
 
@@ -458,10 +510,14 @@ exports.appleLogin = async (req, res, next) => {
     if (findExistRecord) {
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
+      const findMemberShip = await checkMemberShipStatus(findUser?._id);
       return res.status(200).json({
         message: "User login successfully",
         token: token,
         user: findUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
       });
     } else {
       const newAuth = new Auth({
@@ -476,11 +532,15 @@ exports.appleLogin = async (req, res, next) => {
       await newAuth.save();
 
       const token = await generateToken(newUser);
+      const findMemberShip = await checkMemberShipStatus(newUser?._id);
 
       return res.status(200).json({
         message: "New User login successfully",
         token: token,
         user: newUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
       });
     }
   } catch (error) {
@@ -586,3 +646,14 @@ exports.makeEveryMemberVerified = async (req, res) => {
     });
   }
 };
+
+function getOtpJwtToken(user) {
+  const generateToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET_OTP_MEMBER,
+    {
+      expiresIn: "10m",
+    }
+  );
+  return generateToken;
+}
