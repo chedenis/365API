@@ -90,8 +90,8 @@ exports.register = async (req, res) => {
         });
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
-        return res.status(409).json({
-          error: "Member already exist please verify it",
+        return res.status(200).json({
+          message: "Member already exist please verify it",
           token: getOtpJwtToken(findByInactiveUser),
           otp: otp,
         });
@@ -101,7 +101,7 @@ exports.register = async (req, res) => {
           link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
         });
         return res.status(200).json({
-          error:
+          message:
             "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
         });
       }
@@ -123,6 +123,7 @@ exports.register = async (req, res) => {
         return res.status(200).json({
           message: "User registered successfully please verify to login",
           token: getOtpJwtToken(newAuth),
+          otp: otp,
         });
       } else {
         await sendEmailForRegister(email, "Registration email", "member", {
@@ -130,7 +131,8 @@ exports.register = async (req, res) => {
           link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${newAuth?.randomString}`,
         });
         return res.status(200).json({
-          message: "User registered successfully please verify to login",
+          message:
+            "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
         });
       }
     }
