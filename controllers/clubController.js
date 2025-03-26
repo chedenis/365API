@@ -353,17 +353,26 @@ exports.updateClub = async (req, res) => {
     };
 
     function checkImageExist(imageType) {
+      // Check if the image property exists in updateObj
+      const imageExists = updateObj && updateObj[imageType] !== undefined;
+
+      // Also check if it's included in updatedFields array
       const imageFieldList = updateObj?.updatedFields || [];
-      return imageFieldList.includes(imageType);
+      const isInUpdatedFields = imageFieldList.includes(imageType);
+
+      // Return true if either condition is met
+      return imageExists || isInUpdatedFields;
     }
+
     let oldDataUpdateObj = updateData["$set"];
     const profileImage = updateObj?.profileImage;
     const featuredImage = updateObj?.featuredImage;
+
     if (checkImageExist("profileImage")) {
-      delete oldDataUpdateObj?.profileImage;
+      delete oldDataUpdateObj.profileImage;
     }
     if (checkImageExist("featuredImage")) {
-      delete oldDataUpdateObj?.featuredImage;
+      delete oldDataUpdateObj.featuredImage;
     }
 
     console.log("oldDataUpdateObj", oldDataUpdateObj);
