@@ -657,10 +657,36 @@ exports.checkRecordForAppleLogin = async (req, res) => {
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
       const findMemberShip = await checkMemberShipStatus(findUser?._id);
+
+      if (!findExistRecord?.isVerified) {
+        let otp = `${await generateOTP()}`;
+        await sendRegisterEmailOTP(
+          findExistRecord?.email,
+          "Registration OTP",
+          "member",
+          otp
+        );
+        const tokenForOtp = await getOtpJwtToken(findExistRecord);
+
+        return res.status(200).json({
+          message: "Record already exist just need to verify it",
+          status: true,
+          isRecordExist: true,
+          isVerified: false,
+          user: findUser,
+          membershipData: findMemberShip?.status
+            ? findMemberShip?.membershipData
+            : {},
+          token: tokenForOtp,
+          otp: otp,
+        });
+      }
+
       return res.status(200).json({
         message: "Record already exist",
         status: true,
         isRecordExist: true,
+        isVerified: true,
         user: findUser,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
