@@ -81,7 +81,11 @@ exports.loginClub = (req, res, next) => {
     }
 
     if (!clubAuth?.isVerified) {
-      return res.status(400).json({ message: "Please verify the user" });
+      return res
+        .status(400)
+        .json({
+          message: "You have to confirm your email address before login",
+        });
     }
 
     const token = generateToken(clubAuth);

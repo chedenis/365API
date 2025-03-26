@@ -22,7 +22,7 @@ passport.use(
 
         if (!auth?.isVerified) {
           return done(null, false, {
-            message: "Please verify to login",
+            message: "You have to confirm your email address before login",
           });
         }
 
