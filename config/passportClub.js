@@ -19,6 +19,12 @@ passport.use(
           });
         }
 
+        if (!clubAuth?.isVerified) {
+          return done(null, false, {
+            message: "You have to confirm your email address before login",
+          });
+        }
+
         const isMatch = await bcrypt.compare(password, clubAuth.password);
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });

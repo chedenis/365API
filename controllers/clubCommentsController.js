@@ -45,12 +45,13 @@ exports.createComments = async (req, res) => {
     if (["Reject"].includes(clubStatus)) {
       await Club.updateOne(
         {
-          parentClubId: club,
+          _id: club,
         },
         {
           status: clubStatus,
         }
       );
+      await Club.deleteMany({ parentClubId: club });
     }
 
     let createComments = "";

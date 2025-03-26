@@ -11,9 +11,6 @@ const userSchema = new mongoose.Schema({
   profile_picture: { type: String },
   memberId: {
     type: String,
-    default: function () {
-      return this._id.toString();
-    },
   },
   membershipStatus: {
     type: String,
@@ -33,6 +30,50 @@ const userSchema = new mongoose.Schema({
     },
     { _id: false }
   ),
+});
+
+// Pre-save middleware to generate memberId
+userSchema.pre("save", async function (next) {
+  // Skip if memberId is already set
+  if (this.memberId) {
+    return next();
+  }
+
+  try {
+    // Determine the model name based on the environment
+    const modelName =
+      process.env.NODE_ENV === "qa"
+        ? "UserQA"
+        : process.env.NODE_ENV === "production"
+        ? "UserPROD"
+        : "User";
+
+    const Model = mongoose.model(modelName);
+
+    // Find highest memberId
+    const highestUser = await Model.findOne({}).sort({ memberId: -1 }).limit(1);
+
+    let newMemberId;
+    if (highestUser.memberId) {
+      // Parse memberId as number and increment
+      const currentNum = parseInt(highestUser.memberId);
+      if (!isNaN(currentNum)) {
+        // Format with leading zeros
+        newMemberId = (currentNum + 1).toString().padStart(6, "0");
+      } else {
+        // If parsing failed, start with 0001
+        newMemberId = "0001";
+      }
+    } else {
+      // First document or no valid memberId found
+      newMemberId = "0001";
+    }
+
+    this.memberId = newMemberId;
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Determine the model name based on the environment

@@ -8,8 +8,16 @@ const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
 const mongoose = require("mongoose");
 const generateOTP = require("../utils/otp");
-const { sendEmail, sendEmailOTP } = require("../utils/mailer");
-const { checkMemberShipStatus } = require("../utils/common");
+const {
+  sendEmail,
+  sendEmailOTP,
+  sendEmailForRegister,
+  sendRegisterEmailOTP,
+} = require("../utils/mailer");
+const {
+  checkMemberShipStatus,
+  defaultServerErrorMessage,
+} = require("../utils/common");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // JWT helper function
@@ -17,7 +25,7 @@ const generateToken = (user) => {
   return jwt.sign(
     {
       id: user._id,
-      email: user.email,
+      email: user?.email,
     },
     process.env.JWT_SECRET,
     { expiresIn: "48h" } // Adjust expiration as needed
@@ -56,47 +64,117 @@ exports.getLoginStatus = async (req, res) => {
 // Register a new user
 exports.register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
     // Check if the user already exists
-    const existingAuth = await Auth.findOne({ email });
+    const existingAuth = await Auth.findOne({ email, isVerified: true });
     if (existingAuth) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    // Create the User
-    const newUser = new User({ email, firstName, lastName });
-    await newUser.save();
+    const findByInactiveUser = await Auth.findOne({ email, isVerified: false });
 
-    // Create the Auth record; pass plaintext password
-    const newAuth = new Auth({
-      email,
-      password, // Plaintext password; the hook will hash it
-      user: newUser._id,
-    });
+    let otp;
+    if (isMobile) {
+      otp = await generateOTP();
+    }
 
-    await newAuth.save();
+    if (findByInactiveUser) {
+      if (isMobile) {
+        await Auth.findByIdAndUpdate(findByInactiveUser?._id, {
+          otp: otp,
+        });
 
-    // Generate a token
-    const token = await generateToken(newUser);
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+        return res.status(409).json({
+          error: "Member already exist please verify it",
+          token: getOtpJwtToken(findByInactiveUser),
+          otp: otp,
+        });
+      } else {
+        await sendEmailForRegister(email, "Registration email", "member", {
+          email: email,
+          link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
+        });
+        return res.status(200).json({
+          error:
+            "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
+        });
+      }
+    } else {
+      const newUser = new User({ email, firstName, lastName });
+      await newUser.save();
 
-    res.status(201).json({
-      message: "User registered successfully",
-      token,
-      user: {
-        id: newUser._id,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-      },
-    });
+      const newAuth = new Auth({
+        email,
+        password,
+        user: newUser._id,
+        otp: otp || "",
+      });
+
+      await newAuth.save();
+
+      if (isMobile) {
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+        return res.status(200).json({
+          message: "User registered successfully please verify to login",
+          token: getOtpJwtToken(newAuth),
+        });
+      } else {
+        await sendEmailForRegister(email, "Registration email", "member", {
+          email: email,
+          link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${newAuth?.randomString}`,
+        });
+        return res.status(200).json({
+          message: "User registered successfully please verify to login",
+        });
+      }
+    }
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).json({ error: "Error registering user" });
+  }
+};
+
+exports.registerVerifyOtp = async (req, res) => {
+  const user = req.user;
+  const { otp } = req.body;
+
+  try {
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required" });
+    }
+
+    if (user.otp != otp) {
+      return res.status(404).json({ message: "Invalid OTP" });
+    }
+
+    user.otp = "";
+    user.isVerified = true;
+    await user.save();
+    console.log("user?.user", user?.user);
+    const findUser = await User.findById(user?.user);
+    const token = generateToken(findUser);
+
+    const findMemberShip = await checkMemberShipStatus(user?._id);
+    return res.status(200).json({
+      message: "User verified successfully",
+      token: token,
+      user: user,
+      membershipData: findMemberShip?.status
+        ? findMemberShip?.membershipData
+        : {},
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        "The token has expired or is invalid. Please request a new password reset",
+      error: error.message,
+    });
   }
 };
 
@@ -433,7 +511,202 @@ exports.facebookCallback = (req, res, next) => {
   })(req, res, next);
 };
 
+exports.appleLogin = async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, appleId } = req.body;
+    let findExistRecord = await Auth.findOne({
+      email: email,
+      isVerified: true,
+    });
+
+    if (findExistRecord) {
+      await Auth.findByIdAndUpdate(findExistRecord?._id, {
+        appleId: appleId,
+        socialType: "apple",
+      });
+      const findUser = await User.findById(findExistRecord?.user);
+      const token = await generateToken(findUser);
+      const findMemberShip = await checkMemberShipStatus(findUser?._id);
+      return res.status(200).json({
+        message: "User login successfully",
+        token: token,
+        user: findUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
+        isNewRecord: false,
+      });
+    } else {
+      let otp = `${await generateOTP()}`;
+
+      let findUnVerifiedExistRecord = await Auth.findOne({
+        email: email,
+        isVerified: false,
+      });
+
+      if (findUnVerifiedExistRecord) {
+        const updatedRecord = await Auth.findByIdAndUpdate(
+          findUnVerifiedExistRecord?._id,
+          {
+            appleId: appleId,
+            socialType: "apple",
+            otp: otp,
+          }
+        );
+        const token = await getOtpJwtToken(updatedRecord);
+        const findMemberShip = await checkMemberShipStatus(updatedRecord?._id);
+        return res.status(200).json({
+          message: "User login successfully",
+          token: token,
+          user: updatedRecord,
+          membershipData: findMemberShip?.status
+            ? findMemberShip?.membershipData
+            : {},
+          isNewRecord: true,
+          otp: otp,
+        });
+      }
+      const newAuth = new Auth({
+        email,
+        appleId: appleId,
+        socialType: "apple",
+        otp: otp,
+      });
+
+      const newUser = new User({ firstName, lastName, email });
+      await newUser.save();
+      newAuth.user = newUser?._id;
+      await newAuth.save();
+
+      const token = await getOtpJwtToken(newAuth);
+      const findMemberShip = await checkMemberShipStatus(newUser?._id);
+
+      return res.status(200).json({
+        message: "New User login successfully",
+        token: token,
+        user: newUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
+        isNewRecord: true,
+        otp: otp,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      data: {},
+    });
+  }
+};
+
+exports.checkRecordForAppleLogin = async (req, res) => {
+  try {
+    const { appleId } = req.body;
+    let findExistRecord = await Auth.findOne({ appleId: appleId });
+
+    if (findExistRecord) {
+      const findUser = await User.findById(findExistRecord?.user);
+      const token = await generateToken(findUser);
+      const findMemberShip = await checkMemberShipStatus(findUser?._id);
+      return res.status(200).json({
+        message: "Record already exist",
+        status: true,
+        isRecordExist: true,
+        user: findUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
+        token: token,
+      });
+    } else {
+      return res.status(200).json({
+        message: "Record not found",
+        status: true,
+        isRecordExist: false,
+        user: {},
+        token: "",
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    return res.status(200).json({
+      message: defaultServerErrorMessage,
+      status: false,
+      isRecordExist: false,
+      user: {},
+      token: "",
+    });
+  }
+};
+
 // Logout (JWT doesn't need server-side logout unless blacklisting is implemented)
 exports.logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
+
+exports.verifyUser = async (req, res) => {
+  try {
+    const { confirmation_token } = req.query;
+
+    if (!confirmation_token) {
+      return res
+        .status(400)
+        .json({ message: "Token is required", status: false });
+    }
+
+    const findUser = await Auth.findOne({ randomString: confirmation_token });
+    if (!findUser?.isVerified) {
+      return res.status(404).json({ message: "User not found", status: false });
+    } else if (findUser?.isVerified) {
+      return res
+        .status(409)
+        .json({ message: "User already verified", status: false });
+    } else {
+      await Auth.findByIdAndUpdate(findUser?._id, {
+        isVerified: true,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "User verified successfully",
+      });
+    }
+  } catch (err) {
+    console.error("Error during registration:", err);
+    res.status(500).json({ error: "Error registering user" });
+  }
+};
+
+exports.makeEveryMemberVerified = async (req, res) => {
+  try {
+    const users = await Auth.find({});
+
+    for (let i = 0; i < users.length; i++) {
+      await Auth.findByIdAndUpdate(users[i]._id, {
+        isVerified: true,
+      });
+    }
+    return res.status(200).json({
+      message: "User verified successfully",
+      status: true,
+    });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
+  }
+};
+
+function getOtpJwtToken(user) {
+  const generateToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET_OTP_MEMBER,
+    {
+      expiresIn: "10m",
+    }
+  );
+  return generateToken;
+}

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const clubAuthController = require("../controllers/clubAuthController");
-const forgotOtpMobileClub = require("../middleware/forgotOtpClub");
+const OtpMobileClub = require("../middleware/clubOtpAuth");
 const clubAuthMiddleware = require("../middleware/clubAuth");
 
 // Local registration and login
@@ -16,7 +16,7 @@ router.get("/validate-token/:id", clubAuthController.validateToken);
 router.post("/reset-password", clubAuthController.resetPassword);
 router.post(
   "/reset-password-mobile",
-  forgotOtpMobileClub,
+  OtpMobileClub,
   clubAuthController.resetPasswordMobile
 );
 router.post(
@@ -36,5 +36,12 @@ router.post("/profile", clubAuthMiddleware, clubAuthController.getProfile);
 
 // Logout
 router.get("/logout", clubAuthController.logoutClub);
+
+router.get(
+  "/update-old-club-owner-verified",
+  clubAuthController.makeEveryClubOwnerVerified
+);
+
+router.get("/verify", clubAuthController.verifyUser);
 
 module.exports = router;

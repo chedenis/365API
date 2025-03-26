@@ -4,7 +4,7 @@ const {
   S3Client,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
-const { User, MemberShip } = require("../models");
+const { User, MemberShip, Auth } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
@@ -16,7 +16,10 @@ const handleSubscriptionUpdated = require("../utils/stripe/update-subscription")
 const handleInvoicePaid = require("../utils/stripe/invoice-paid");
 const handleSubscriptionDeleted = require("../utils/stripe/delete-subscription");
 const handlePaymentCreate = require("../utils/stripe/payment-create");
-const { checkMemberShipStatus } = require("../utils/common");
+const {
+  checkMemberShipStatus,
+  defaultServerErrorMessage,
+} = require("../utils/common");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -209,5 +212,33 @@ exports.generateMemberPresignedUrl = async (req, res) => {
   } catch (err) {
     console.error("Error generating pre-signed URL", err);
     res.status(500).json({ error: "Error generating pre-signed URL" });
+  }
+};
+
+exports.updateMemberIdWithSerialNumber = async (req, res) => {
+  try {
+    const users = await User.find({}).sort({ createdAt: 1 });
+
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+
+      const newMemberId = (i + 1).toString().padStart(6, "0");
+
+      // // Update the user
+      await User.findByIdAndUpdate(user._id, {
+        memberId: newMemberId,
+      });
+
+      console.log(`Updated user ${user._id} with new memberId: ${newMemberId}`);
+    }
+    return res.status(200).json({
+      message: "MemberId updated successfully",
+      status: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
   }
 };

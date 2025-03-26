@@ -1,10 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const AuthController = require("../controllers/authController");
-const forgotOtpMobileMember = require("../middleware/forgotOtpMember");
+const OtpMobileMember = require("../middleware/memberOtpAuth");
 
 // Registration route
 router.post("/register", AuthController.register);
+router.post(
+  "/register-verify-otp",
+  OtpMobileMember,
+  AuthController.registerVerifyOtp
+);
 
 // Email and password login
 router.post("/login", AuthController.login);
@@ -14,7 +19,7 @@ router.get("/validate-token/:id", AuthController.validateToken);
 router.post("/reset-password", AuthController.resetPassword);
 router.post(
   "/reset-password-mobile",
-  forgotOtpMobileMember,
+  OtpMobileMember,
   AuthController.resetPasswordMobile
 );
 
@@ -27,10 +32,20 @@ router.post("/google-signin", AuthController.googleMobileAuth);
 router.get("/facebook", AuthController.facebookAuth);
 router.get("/facebook/callback", AuthController.facebookCallback);
 
+router.post("/apple-login", AuthController.appleLogin);
+router.post(
+  "/check-apple-login-record",
+  AuthController.checkRecordForAppleLogin
+);
+
 // Check session or login status
 router.post("/status", AuthController.getLoginStatus);
 
 // Logout
 router.get("/logout", AuthController.logout);
+
+router.get("/update-old-user-verified", AuthController.makeEveryMemberVerified);
+
+router.get("/verify", AuthController.verifyUser);
 
 module.exports = router;

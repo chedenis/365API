@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+var randomstring = require("randomstring");
 
 // Determine the environment-specific model name for User
 let userModelName = "User";
@@ -25,7 +26,7 @@ const authSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId && !this.facebookId;
+        return !this.googleId && !this.facebookId && !this.appleId;
       },
       minlength: [6, "Password must be at least 6 characters long"],
     },
@@ -43,6 +44,11 @@ const authSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    appleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     otp: { type: String, required: false },
     socialType: { type: String, required: false }, // google
     user: {
@@ -53,6 +59,14 @@ const authSchema = new mongoose.Schema(
           : process.env.NODE_ENV === "qa"
           ? "UserQA"
           : "User", // Explicit environment-based model name, // Use the model name string directly
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    randomString: {
+      type: String,
+      default: randomstring.generate(),
     },
   },
   {

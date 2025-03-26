@@ -1,6 +1,9 @@
 const { stripe } = require("../config/stripe");
-const { MemberShip } = require("../models");
-const { checkMemberShipStatus } = require("../utils/common");
+const { MemberShip, User } = require("../models");
+const {
+  checkMemberShipStatus,
+  defaultServerErrorMessage,
+} = require("../utils/common");
 
 exports.checkMemberShipStatus = async (req, res) => {
   const userId = req.user._id;
@@ -104,5 +107,30 @@ exports.cancelMemberShipStatus = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, error: "Failed to cancel membership" });
+  }
+};
+
+exports.webViewUrl = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: No or invalid token format" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    console.log("token", token);
+    return res.status(200).json({
+      success: true,
+      message: "Url get successfully",
+      url: `${process.env.FRONTEND_URL}/member/type?token=${token}`,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: defaultServerErrorMessage,
+      url: "",
+    });
   }
 };

@@ -20,6 +20,12 @@ passport.use(
           });
         }
 
+        if (!auth?.isVerified) {
+          return done(null, false, {
+            message: "You have to confirm your email address before login",
+          });
+        }
+
         // If password comparison still fails, check their actual values
         const isMatch = bcrypt.compareSync(
           password.trim(),
@@ -86,6 +92,7 @@ passport.use(
             googleId: profile?.id,
             email,
             user: newUser?._id,
+            isVerified: true,
           });
           await newAuth.save();
 
@@ -146,6 +153,7 @@ passport.use(
             facebookId: profile?.id,
             username: email,
             user: newUser?._id,
+            isVerified: true,
           });
           await newAuth.save();
 
