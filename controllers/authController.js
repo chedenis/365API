@@ -67,13 +67,15 @@ exports.register = async (req, res) => {
     const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ error: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     // Check if the user already exists
     const existingAuth = await Auth.findOne({ email, isVerified: true });
     if (existingAuth) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     const findByInactiveUser = await Auth.findOne({ email, isVerified: false });
@@ -138,7 +140,33 @@ exports.register = async (req, res) => {
     }
   } catch (err) {
     console.error("Error during registration:", err);
-    res.status(500).json({ error: "Error registering user" });
+    res.status(500).json({ message: defaultServerErrorMessage });
+  }
+};
+
+exports.registerResendOtp = async (req, res) => {
+  const { email } = req.body;
+  try {
+    let findUser = await Auth.findOne({ email });
+
+    if (findUser?.isVerified) {
+      return res.status(409).json({ message: "User already verified" });
+    } else {
+      const otp = `${await generateOTP()}`;
+      await Auth.findByIdAndUpdate(findUser?._id, {
+        otp: otp,
+      });
+
+      await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+      return res.status(200).json({
+        message: "Member already exist please verify it",
+        token: getOtpJwtToken(findUser),
+        otp: otp,
+      });
+    }
+  } catch (error) {
+    console.error("Register resend error:", error);
+    return res.status(500).json({ message: defaultServerErrorMessage });
   }
 };
 
@@ -276,7 +304,18 @@ exports.login = async (req, res, next) => {
     }
     if (!user) {
       console.log("User not found", info.message);
-      return res.status(400).json({ error: info.message });
+      if (info?.isGenerateOtp && req?.body?.isMobile) {
+        const getOtp = await generateOTP();
+        const token = await getOtpJwtToken(info?.authData);
+        await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
+        return res.status(200).json({
+          message: info?.message,
+          otp: getOtp,
+          token: token,
+          isVerified: info?.isVerified,
+        });
+      }
+      return res.status(400).json({ message: info.message });
     }
 
     const token = generateToken(user);
@@ -287,6 +326,7 @@ exports.login = async (req, res, next) => {
       message: "Logged in successfully",
       token,
       user: user,
+      isVerified: true,
       membershipData: findMemberShip?.status
         ? findMemberShip?.membershipData
         : {},
@@ -533,6 +573,7 @@ exports.appleLogin = async (req, res, next) => {
         message: "User login successfully",
         token: token,
         user: findUser,
+        isVerified: true,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
@@ -555,12 +596,14 @@ exports.appleLogin = async (req, res, next) => {
             otp: otp,
           }
         );
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         const token = await getOtpJwtToken(updatedRecord);
         const findMemberShip = await checkMemberShipStatus(updatedRecord?._id);
         return res.status(200).json({
           message: "User login successfully",
           token: token,
           user: updatedRecord,
+          isVerified: false,
           membershipData: findMemberShip?.status
             ? findMemberShip?.membershipData
             : {},
@@ -580,6 +623,7 @@ exports.appleLogin = async (req, res, next) => {
       newAuth.user = newUser?._id;
       await newAuth.save();
 
+      await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
       const token = await getOtpJwtToken(newAuth);
       const findMemberShip = await checkMemberShipStatus(newUser?._id);
 
@@ -587,6 +631,7 @@ exports.appleLogin = async (req, res, next) => {
         message: "New User login successfully",
         token: token,
         user: newUser,
+        isVerified: false,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
@@ -612,10 +657,36 @@ exports.checkRecordForAppleLogin = async (req, res) => {
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
       const findMemberShip = await checkMemberShipStatus(findUser?._id);
+
+      if (!findExistRecord?.isVerified) {
+        let otp = `${await generateOTP()}`;
+        await sendRegisterEmailOTP(
+          findExistRecord?.email,
+          "Registration OTP",
+          "member",
+          otp
+        );
+        const tokenForOtp = await getOtpJwtToken(findExistRecord);
+
+        return res.status(200).json({
+          message: "Record already exist just need to verify it",
+          status: true,
+          isRecordExist: true,
+          isVerified: false,
+          user: findUser,
+          membershipData: findMemberShip?.status
+            ? findMemberShip?.membershipData
+            : {},
+          token: tokenForOtp,
+          otp: otp,
+        });
+      }
+
       return res.status(200).json({
         message: "Record already exist",
         status: true,
         isRecordExist: true,
+        isVerified: true,
         user: findUser,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
