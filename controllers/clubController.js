@@ -365,7 +365,7 @@ exports.updateClub = async (req, res) => {
     if (checkImageExist("featuredImage")) {
       delete oldDataUpdateObj?.featuredImage;
     }
-
+    console.log('oldDataUpdateObj', oldDataUpdateObj)
     const { parentClubId, ...rest } = oldDataUpdateObj;
     await Club.findByIdAndUpdate(existingClub._id, {
       ...rest,
@@ -386,6 +386,8 @@ exports.updateClub = async (req, res) => {
     });
     console.log("updateData", updateData);
     if (findChildRecord) {
+      console.log('profileImage :>> ', profileImage);
+      console.log('featuredImage :>> ', profileImage);
       delete updateData["$set"]["_id"];
       returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
         ...updateData,
