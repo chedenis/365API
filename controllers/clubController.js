@@ -365,8 +365,10 @@ exports.updateClub = async (req, res) => {
     if (checkImageExist("featuredImage")) {
       delete oldDataUpdateObj?.featuredImage;
     }
-    console.log('oldDataUpdateObj', oldDataUpdateObj)
+
+    console.log("oldDataUpdateObj", oldDataUpdateObj);
     const { parentClubId, ...rest } = oldDataUpdateObj;
+
     await Club.findByIdAndUpdate(existingClub._id, {
       ...rest,
       status:
@@ -374,7 +376,7 @@ exports.updateClub = async (req, res) => {
           ? "Complete"
           : existingClub?.status == "Reject"
           ? "Reject"
-          : updateObj?.featuredImage,
+          : existingClub?.status,
     });
 
     delete updateObj?._id;
@@ -386,13 +388,18 @@ exports.updateClub = async (req, res) => {
     });
     console.log("updateData", updateData);
     if (findChildRecord) {
-      console.log('profileImage :>> ', profileImage);
-      console.log('featuredImage :>> ', profileImage);
-      delete updateData["$set"]["_id"];
+      console.log("profileImage :>> ", profileImage);
+      console.log("featuredImage :>> ", profileImage);
+
+      // Create a new update object for the child record
+      const childUpdateData = { ...updateData["$set"] };
+      delete childUpdateData["_id"];
+
+      // Properly handle image fields for child record
       returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
-        ...updateData,
-        profileImage: profileImage,
-        featuredImage: featuredImage,
+        $set: childUpdateData,
+        ...(profileImage && { profileImage }),
+        ...(featuredImage && { featuredImage }),
       });
     } else {
       returnRecord = await Club.create({
