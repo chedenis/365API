@@ -67,13 +67,15 @@ exports.register = async (req, res) => {
     const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ error: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     // Check if the user already exists
     const existingAuth = await Auth.findOne({ email, isVerified: true });
     if (existingAuth) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     const findByInactiveUser = await Auth.findOne({ email, isVerified: false });
@@ -138,7 +140,7 @@ exports.register = async (req, res) => {
     }
   } catch (err) {
     console.error("Error during registration:", err);
-    res.status(500).json({ error: "Error registering user" });
+    res.status(500).json({ message: defaultServerErrorMessage });
   }
 };
 
