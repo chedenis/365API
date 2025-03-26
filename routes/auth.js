@@ -5,6 +5,7 @@ const OtpMobileMember = require("../middleware/memberOtpAuth");
 
 // Registration route
 router.post("/register", AuthController.register);
+router.post("/register-resend-otp", AuthController.registerResendOtp);
 router.post(
   "/register-verify-otp",
   OtpMobileMember,

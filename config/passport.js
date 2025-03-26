@@ -25,6 +25,7 @@ passport.use(
             isGenerateOtp: true,
             message: "You have to confirm your email address before login",
             authData: auth,
+            isVerified: false,
           });
         }
 
