@@ -276,7 +276,15 @@ exports.login = async (req, res, next) => {
     }
     if (!user) {
       console.log("User not found", info.message);
-      return res.status(400).json({ error: info.message });
+      if (info?.isGenerateOtp && req?.body?.isMobile) {
+        const getOtp = await generateOTP();
+        const token = await getOtpJwtToken(info?.authData);
+        await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
+        return res
+          .status(200)
+          .json({ message: info?.message, otp: getOtp, token: token });
+      }
+      return res.status(400).json({ message: info.message });
     }
 
     const token = generateToken(user);
