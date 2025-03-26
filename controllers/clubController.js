@@ -811,8 +811,51 @@ exports.clubListTableView = async (req, res) => {
       filter["referralCode"] = { $regex: `^${referralCode}`, $options: "i" };
     }
 
-    if (status == "Re Approve") {
+    if (status === "Complete") {
+      // 1. Find all parent records with Complete status
+      const completeParents = await Club.find({
+        ...filter,
+        status: "Complete",
+      });
+
+      // 2. Collect parent IDs to include in results
+      const parentIdsToInclude = [];
+
+      // 3. For each Complete parent, check if it has children
+      for (const parent of completeParents) {
+        // Check if this parent has any child records
+        const hasChildren = await Club.exists({
+          parentClubId: parent._id,
+        });
+
+        if (!hasChildren) {
+          // Case 1: Parent is Complete and has no children
+          parentIdsToInclude.push(parent._id);
+        } else {
+          // Check if any child has "Re Approve Request" status
+          const hasReApproveRequestChild = await Club.exists({
+            parentClubId: parent._id,
+            status: "Re Approve Request",
+          });
+
+          if (hasReApproveRequestChild) {
+            // Case 2: Parent is Complete and has a Re Approve Request child
+            parentIdsToInclude.push(parent._id);
+          }
+        }
+      }
+
+      // 4. Set the filter to only include these parent IDs
+      filter._id = { $in: parentIdsToInclude };
+
+      // 5. Remove any status filter since we've explicitly selected the records
+      delete filter.status;
+    } else if (status == "Re Approve") {
       filter["status"] = { $in: ["Ready", "Re Approve"] };
+      filter["$or"] = [
+        { parentClubId: { $exists: true, $ne: null } },
+        { _id: { $exists: true, $ne: null } },
+      ];
     }
 
     let distinctClubNames = await Club.distinct("clubName", filter);
@@ -845,15 +888,16 @@ exports.clubListTableView = async (req, res) => {
     // Update the filter to only include these specific clubs
     filter._id = { $in: clubsWithDistinctNames };
 
-    if (
-      ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"].includes(
-        status
-      )
-    ) {
-      filter["$or"] = [
+    if (["Not Ready", "Ready", "Re Approve", "Reject"].includes(status)) {
+      // Add the existing condition for parent/child relationships
+      if (!filter.$or) {
+        filter.$or = [];
+      }
+
+      filter.$or.push(
         { parentClubId: { $exists: true, $ne: null } },
-        { _id: { $exists: true, $ne: null } },
-      ];
+        { _id: { $exists: true, $ne: null } }
+      );
     }
 
     const clubAuthFilter = {};
