@@ -659,7 +659,7 @@ exports.verifyUser = async (req, res) => {
     }
 
     const findUser = await Auth.findOne({ randomString: confirmation_token });
-    if (!findUser?.isVerified) {
+    if (!findUser) {
       return res.status(404).json({ message: "User not found", status: false });
     } else if (findUser?.isVerified) {
       return res
