@@ -144,6 +144,32 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.registerResendOtp = async (req, res) => {
+  const { email } = req.body;
+  try {
+    let findUser = await Auth.findOne({ email });
+
+    if (findUser?.isVerified) {
+      return res.status(409).json({ message: "User already verified" });
+    } else {
+      const otp = `${await generateOTP()}`;
+      await Auth.findByIdAndUpdate(findUser?._id, {
+        otp: otp,
+      });
+
+      await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
+      return res.status(200).json({
+        message: "Member already exist please verify it",
+        token: getOtpJwtToken(findUser),
+        otp: otp,
+      });
+    }
+  } catch (error) {
+    console.error("Register resend error:", error);
+    return res.status(500).json({ message: defaultServerErrorMessage });
+  }
+};
+
 exports.registerVerifyOtp = async (req, res) => {
   const user = req.user;
   const { otp } = req.body;
@@ -282,9 +308,12 @@ exports.login = async (req, res, next) => {
         const getOtp = await generateOTP();
         const token = await getOtpJwtToken(info?.authData);
         await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
-        return res
-          .status(200)
-          .json({ message: info?.message, otp: getOtp, token: token });
+        return res.status(200).json({
+          message: info?.message,
+          otp: getOtp,
+          token: token,
+          isVerified: info?.isVerified,
+        });
       }
       return res.status(400).json({ message: info.message });
     }
@@ -297,6 +326,7 @@ exports.login = async (req, res, next) => {
       message: "Logged in successfully",
       token,
       user: user,
+      isVerified: true,
       membershipData: findMemberShip?.status
         ? findMemberShip?.membershipData
         : {},
@@ -543,6 +573,7 @@ exports.appleLogin = async (req, res, next) => {
         message: "User login successfully",
         token: token,
         user: findUser,
+        isVerified: true,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
@@ -565,12 +596,14 @@ exports.appleLogin = async (req, res, next) => {
             otp: otp,
           }
         );
+        await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         const token = await getOtpJwtToken(updatedRecord);
         const findMemberShip = await checkMemberShipStatus(updatedRecord?._id);
         return res.status(200).json({
           message: "User login successfully",
           token: token,
           user: updatedRecord,
+          isVerified: false,
           membershipData: findMemberShip?.status
             ? findMemberShip?.membershipData
             : {},
@@ -590,6 +623,7 @@ exports.appleLogin = async (req, res, next) => {
       newAuth.user = newUser?._id;
       await newAuth.save();
 
+      await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
       const token = await getOtpJwtToken(newAuth);
       const findMemberShip = await checkMemberShipStatus(newUser?._id);
 
@@ -597,6 +631,7 @@ exports.appleLogin = async (req, res, next) => {
         message: "New User login successfully",
         token: token,
         user: newUser,
+        isVerified: false,
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
