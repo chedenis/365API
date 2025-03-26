@@ -48,7 +48,7 @@ exports.createComments = async (req, res) => {
           _id: club,
         },
         {
-          c: status,
+          status: clubStatus,
         }
       );
       await Club.deleteMany({ parentClubId: club });
