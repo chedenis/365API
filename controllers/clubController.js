@@ -811,11 +811,11 @@ exports.clubListTableView = async (req, res) => {
       filter["referralCode"] = { $regex: `^${referralCode}`, $options: "i" };
     }
 
-    if (status === "Complete") {
+    if (status === "Complete" || status === "Reject") {
       // 1. Find all parent records with Complete status
       const completeParents = await Club.find({
         ...filter,
-        status: "Complete",
+        status: status,
       });
 
       // 2. Collect parent IDs to include in results
