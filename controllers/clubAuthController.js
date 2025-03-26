@@ -59,7 +59,8 @@ exports.registerClubAuth = async (req, res) => {
       });
 
       return res.status(200).json({
-        message: "Club owner registered successfully please verify to login",
+        message:
+          "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
       });
     }
   } catch (error) {
@@ -79,10 +80,12 @@ exports.loginClub = (req, res, next) => {
       return res.status(400).json({ error: info.message });
     }
 
-    if (!auth?.isVerified) {
-      return done(null, false, {
-        message: "Please verify to login",
-      });
+    if (!clubAuth?.isVerified) {
+      return res
+        .status(400)
+        .json({
+          message: "You have to confirm your email address before login",
+        });
     }
 
     const token = generateToken(clubAuth);
@@ -370,7 +373,7 @@ exports.verifyUser = async (req, res) => {
         .json({ message: "Club owner not found", status: false });
     } else if (findUser?.isVerified) {
       return res
-        .status(409)
+        .status(400)
         .json({ message: "Club owner already verified", status: false });
     } else {
       await ClubAuth.findByIdAndUpdate(findUser?._id, {

@@ -350,40 +350,76 @@ exports.updateClub = async (req, res) => {
     const updateObj = {
       ...updateData["$set"],
       id: undefined,
-      parentClubId: existingClub._id,
     };
+
+    function checkImageExist(imageType) {
+      // Check if the image property exists in updateObj
+      const imageExists = updateObj && updateObj[imageType] !== undefined;
+
+      // Also check if it's included in updatedFields array
+      const imageFieldList = updateObj?.updatedFields || [];
+      const isInUpdatedFields = imageFieldList.includes(imageType);
+
+      // Return true if either condition is met
+      return imageExists || isInUpdatedFields;
+    }
+
+    let oldDataUpdateObj = updateData["$set"];
+    const profileImage = updateObj?.profileImage;
+    const featuredImage = updateObj?.featuredImage;
+
+    if (checkImageExist("profileImage")) {
+      delete oldDataUpdateObj.profileImage;
+    }
+    if (checkImageExist("featuredImage")) {
+      delete oldDataUpdateObj.featuredImage;
+    }
+
+    console.log("oldDataUpdateObj", oldDataUpdateObj);
+    const { parentClubId, ...rest } = oldDataUpdateObj;
+
+    await Club.findByIdAndUpdate(existingClub._id, {
+      ...rest,
+      status:
+        existingClub?.status == "Complete"
+          ? "Complete"
+          : existingClub?.status == "Reject"
+          ? "Reject"
+          : existingClub?.status,
+    });
+
     delete updateObj?._id;
     let returnRecord;
+    console.log("updateData", updateData);
 
-    if (updateData.status == "Complete") {
-      returnRecord = await Club.findByIdAndUpdate(
-        existingClub._id,
-        { ...updateData, parentClubId: "" },
-        {
-          new: true,
-          runValidators: true,
-          context: "query",
-        }
-      );
-      await Club.deleteMany({ parentId: existingClub._id });
+    const findChildRecord = await Club.findOne({
+      parentClubId: existingClub._id,
+    });
+    console.log("updateData", updateData);
+    if (findChildRecord) {
+      console.log("profileImage :>> ", profileImage);
+      console.log("featuredImage :>> ", profileImage);
+
+      // Create a new update object for the child record
+      const childUpdateData = { ...updateData["$set"] };
+      delete childUpdateData["_id"];
+
+      // Properly handle image fields for child record
+      returnRecord = await Club.findByIdAndUpdate(findChildRecord?._id, {
+        $set: childUpdateData,
+        ...(profileImage && { profileImage }),
+        ...(featuredImage && { featuredImage }),
+      });
     } else {
-      const findChildRecord = await Club.findOne({
+      returnRecord = await Club.create({
+        ...updateObj,
         parentClubId: existingClub._id,
       });
-      if (findChildRecord) {
-        delete updateData["$set"]["_id"];
-        returnRecord = await Club.findByIdAndUpdate(
-          findChildRecord?._id,
-          updateData
-        );
-      } else {
-        returnRecord = await Club.create(updateObj);
-      }
     }
 
     res
       .status(200)
-      .json({ message: "Club updated successfully", club: returnRecord });
+      .json({ message: "Club updated successfully", club: req?.body });
   } catch (err) {
     console.error("Error updating club", err);
     res
@@ -775,27 +811,93 @@ exports.clubListTableView = async (req, res) => {
       filter["referralCode"] = { $regex: `^${referralCode}`, $options: "i" };
     }
 
-    if (status == "Re Approve") {
-      filter["status"] = { $in: ["Ready", "Re Approve"] };
-    }
-
-    if (status == "Complete") {
-      // Exclude clubs whose _id exists in another club's parentClubId
-      const clubsWithParent = await Club.distinct("parentClubId", {
-        parentClubId: { $ne: null },
+    if (status === "Complete" || status === "Reject") {
+      // 1. Find all parent records with Complete status
+      const completeParents = await Club.find({
+        ...filter,
+        status: status,
       });
-      filter["_id"] = { $nin: clubsWithParent };
-    }
 
-    if (
-      ["Not Ready", "Ready", "Complete", "Re Approve", "Reject"].includes(
-        status
-      )
-    ) {
+      // 2. Collect parent IDs to include in results
+      const parentIdsToInclude = [];
+
+      // 3. For each Complete parent, check if it has children
+      for (const parent of completeParents) {
+        // Check if this parent has any child records
+        const hasChildren = await Club.exists({
+          parentClubId: parent._id,
+        });
+
+        if (!hasChildren) {
+          // Case 1: Parent is Complete and has no children
+          parentIdsToInclude.push(parent._id);
+        } else {
+          // Check if any child has "Re Approve Request" status
+          const hasReApproveRequestChild = await Club.exists({
+            parentClubId: parent._id,
+            status: "Re Approve Request",
+          });
+
+          if (hasReApproveRequestChild) {
+            // Case 2: Parent is Complete and has a Re Approve Request child
+            parentIdsToInclude.push(parent._id);
+          }
+        }
+      }
+
+      // 4. Set the filter to only include these parent IDs
+      filter._id = { $in: parentIdsToInclude };
+
+      // 5. Remove any status filter since we've explicitly selected the records
+      delete filter.status;
+    } else if (status == "Re Approve") {
+      filter["status"] = { $in: ["Ready", "Re Approve"] };
       filter["$or"] = [
         { parentClubId: { $exists: true, $ne: null } },
         { _id: { $exists: true, $ne: null } },
       ];
+    }
+
+    let distinctClubNames = await Club.distinct("clubName", filter);
+
+    // Modify the filter to only include the first occurrence of each club name
+    // with priority given to records with parentClubId
+    const clubsWithDistinctNames = [];
+
+    for (const name of distinctClubNames) {
+      // First try to find a club with this name that has a parentClubId
+      let club = await Club.findOne({
+        ...filter,
+        clubName: name,
+        parentClubId: { $exists: true, $ne: null },
+      }).sort({ createdAt: 1 });
+
+      // If no club with parentClubId found, get any club with this name
+      if (!club) {
+        club = await Club.findOne({
+          ...filter,
+          clubName: name,
+        }).sort({ createdAt: 1 });
+      }
+
+      if (club) {
+        clubsWithDistinctNames.push(club._id);
+      }
+    }
+
+    // Update the filter to only include these specific clubs
+    filter._id = { $in: clubsWithDistinctNames };
+
+    if (["Not Ready", "Ready", "Re Approve", "Reject"].includes(status)) {
+      // Add the existing condition for parent/child relationships
+      if (!filter.$or) {
+        filter.$or = [];
+      }
+
+      filter.$or.push(
+        { parentClubId: { $exists: true, $ne: null } },
+        { _id: { $exists: true, $ne: null } }
+      );
     }
 
     const clubAuthFilter = {};

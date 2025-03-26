@@ -90,18 +90,20 @@ exports.register = async (req, res) => {
         });
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
-        return res.status(200).json({
-          error: "User already exist please verify it",
+        return res.status(409).json({
+          error: "Member already exist please verify it",
           token: getOtpJwtToken(findByInactiveUser),
+          otp: otp,
         });
       } else {
         await sendEmailForRegister(email, "Registration email", "member", {
           email: email,
           link: `${process.env.FRONTEND_URL}/member/confirmation?confirmation_token=${findByInactiveUser?.randomString}`,
         });
-        return res
-          .status(200)
-          .json({ error: "User already exist please verify it" });
+        return res.status(200).json({
+          error:
+            "A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.",
+        });
       }
     } else {
       const newUser = new User({ email, firstName, lastName });
@@ -119,7 +121,7 @@ exports.register = async (req, res) => {
       if (isMobile) {
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          error: "User registered successfully please verify to login",
+          message: "User registered successfully please verify to login",
           token: getOtpJwtToken(newAuth),
         });
       } else {
@@ -154,11 +156,18 @@ exports.registerVerifyOtp = async (req, res) => {
     user.otp = "";
     user.isVerified = true;
     await user.save();
+    console.log("user?.user", user?.user);
+    const findUser = await User.findById(user?.user);
+    const token = generateToken(findUser);
 
-    const token = generateToken(user);
+    const findMemberShip = await checkMemberShipStatus(user?._id);
     return res.status(200).json({
       message: "User verified successfully",
       token: token,
+      user: user,
+      membershipData: findMemberShip?.status
+        ? findMemberShip?.membershipData
+        : {},
     });
   } catch (error) {
     return res.status(400).json({
@@ -505,9 +514,16 @@ exports.facebookCallback = (req, res, next) => {
 exports.appleLogin = async (req, res, next) => {
   try {
     const { firstName, lastName, email, appleId } = req.body;
-    let findExistRecord = await Auth.findOne({ email: email });
+    let findExistRecord = await Auth.findOne({
+      email: email,
+      isVerified: true,
+    });
 
     if (findExistRecord) {
+      await Auth.findByIdAndUpdate(findExistRecord?._id, {
+        appleId: appleId,
+        socialType: "apple",
+      });
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
       const findMemberShip = await checkMemberShipStatus(findUser?._id);
@@ -518,12 +534,43 @@ exports.appleLogin = async (req, res, next) => {
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
+        isNewRecord: false,
       });
     } else {
+      let otp = `${await generateOTP()}`;
+
+      let findUnVerifiedExistRecord = await Auth.findOne({
+        email: email,
+        isVerified: false,
+      });
+
+      if (findUnVerifiedExistRecord) {
+        const updatedRecord = await Auth.findByIdAndUpdate(
+          findUnVerifiedExistRecord?._id,
+          {
+            appleId: appleId,
+            socialType: "apple",
+            otp: otp,
+          }
+        );
+        const token = await getOtpJwtToken(updatedRecord);
+        const findMemberShip = await checkMemberShipStatus(updatedRecord?._id);
+        return res.status(200).json({
+          message: "User login successfully",
+          token: token,
+          user: updatedRecord,
+          membershipData: findMemberShip?.status
+            ? findMemberShip?.membershipData
+            : {},
+          isNewRecord: true,
+          otp: otp,
+        });
+      }
       const newAuth = new Auth({
         email,
         appleId: appleId,
         socialType: "apple",
+        otp: otp,
       });
 
       const newUser = new User({ firstName, lastName, email });
@@ -531,7 +578,7 @@ exports.appleLogin = async (req, res, next) => {
       newAuth.user = newUser?._id;
       await newAuth.save();
 
-      const token = await generateToken(newUser);
+      const token = await getOtpJwtToken(newAuth);
       const findMemberShip = await checkMemberShipStatus(newUser?._id);
 
       return res.status(200).json({
@@ -541,6 +588,8 @@ exports.appleLogin = async (req, res, next) => {
         membershipData: findMemberShip?.status
           ? findMemberShip?.membershipData
           : {},
+        isNewRecord: true,
+        otp: otp,
       });
     }
   } catch (error) {
@@ -560,11 +609,15 @@ exports.checkRecordForAppleLogin = async (req, res) => {
     if (findExistRecord) {
       const findUser = await User.findById(findExistRecord?.user);
       const token = await generateToken(findUser);
+      const findMemberShip = await checkMemberShipStatus(findUser?._id);
       return res.status(200).json({
         message: "Record already exist",
         status: true,
         isRecordExist: true,
         user: findUser,
+        membershipData: findMemberShip?.status
+          ? findMemberShip?.membershipData
+          : {},
         token: token,
       });
     } else {
@@ -604,7 +657,7 @@ exports.verifyUser = async (req, res) => {
     }
 
     const findUser = await Auth.findOne({ randomString: confirmation_token });
-    if (!findUser) {
+    if (!findUser?.isVerified) {
       return res.status(404).json({ message: "User not found", status: false });
     } else if (findUser?.isVerified) {
       return res
