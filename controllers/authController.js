@@ -785,8 +785,8 @@ exports.memberMigration = async (req, res) => {
     const results = [];
 
     const testEmailForSendEmail = [
-      // "bbhojani@sigmasolve.com",
-      "pbhut@sigmasolve.com",
+      "bbhojani@sigmasolve.com",
+      // "pbhut@sigmasolve.com",
       // "dshah@sigmasolve.net",
     ];
 
