@@ -1,7 +1,35 @@
 const express = require("express");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 const router = express.Router();
 const AuthController = require("../controllers/authController");
 const OtpMobileMember = require("../middleware/memberOtpAuth");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Create the directory if it doesn't exist
+    const uploadPath = path.join(__dirname, "..", "public", "uploads");
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === "text/csv" || file.originalname.endsWith(".csv")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only CSV files are allowed"), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+});
 
 // Registration route
 router.post("/register", AuthController.register);
@@ -48,5 +76,11 @@ router.get("/logout", AuthController.logout);
 router.get("/update-old-user-verified", AuthController.makeEveryMemberVerified);
 
 router.get("/verify", AuthController.verifyUser);
+
+router.post(
+  "/member-migration",
+  upload.single("csvFile"),
+  AuthController.memberMigration
+);
 
 module.exports = router;

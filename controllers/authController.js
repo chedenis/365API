@@ -19,7 +19,8 @@ const {
   defaultServerErrorMessage,
 } = require("../utils/common");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+const fs = require("fs");
+const csv = require("csv-parser");
 // JWT helper function
 const generateToken = (user) => {
   return jwt.sign(
@@ -303,11 +304,16 @@ exports.login = async (req, res, next) => {
       return next(err);
     }
     if (!user) {
-      console.log("User not found", info.message);
       if (info?.isGenerateOtp && req?.body?.isMobile) {
         const getOtp = await generateOTP();
         const token = await getOtpJwtToken(info?.authData);
         await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
+        await sendRegisterEmailOTP(
+          info?.authData?.email,
+          "Registration OTP",
+          "member",
+          getOtp
+        );
         return res.status(200).json({
           message: info?.message,
           otp: getOtp,
@@ -773,6 +779,67 @@ exports.makeEveryMemberVerified = async (req, res) => {
   }
 };
 
+exports.memberMigration = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "No file uploaded or file is not a CSV" });
+    }
+
+    const results = [];
+
+    const testEmailForSendEmail = [
+      "bbhojani@sigmasolve.com",
+      // "pbhut@sigmasolve.com",
+      // "dshah@sigmasolve.net",
+    ];
+
+    const needToStoreTestDataOnly = true;
+
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        // Delete the file after processing
+        fs.unlinkSync(req.file.path);
+
+        for (let i = 0; i < results.length; i++) {
+          try {
+            const userData = results[i];
+
+            if (userData?.id) {
+              if (
+                !needToStoreTestDataOnly ||
+                testEmailForSendEmail.includes(userData.Email)
+              ) {
+                storeMemberData(userData);
+              }
+            }
+          } catch (error) {
+            console.log("error", error);
+          }
+        }
+
+        res.json({
+          success: true,
+          data: results,
+          rowCount: results.length,
+        });
+      })
+      .on("error", (error) => {
+        console.error("Error parsing CSV:", error);
+        res.status(500).json({ error: "Failed to parse CSV file" });
+      });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
+  }
+};
+
 function getOtpJwtToken(user) {
   const generateToken = jwt.sign(
     { id: user._id },
@@ -782,4 +849,60 @@ function getOtpJwtToken(user) {
     }
   );
   return generateToken;
+}
+
+async function storeMemberData(userData) {
+  try {
+    const findUser = await User.findOne({ email: userData.Email });
+    if (!findUser) {
+      const newUser = new User({
+        email: userData.Email,
+        firstName: userData?.Name?.split(" ")[0],
+        lastName: userData?.Name?.split(" ")[1],
+        stripeCustomerId: userData?.id,
+      });
+
+      await newUser.save();
+
+      const newAuth = new Auth({
+        email: userData.Email,
+        isVerified: true,
+        user: newUser?._id,
+        password: "dink@123",
+      });
+      await newAuth.save();
+
+      let user = newAuth;
+
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
+
+      const resetTokenData = new ResetToken({
+        userId: user._id,
+        token: resetToken,
+        createdAt: new Date(),
+      });
+
+      await resetTokenData.save();
+
+      const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
+      await sendEmail(userData.Email, "ResetPassword", resetLink, "member");
+
+      console.log("user data for auth table", {
+        email: userData.Email,
+        isVerified: true,
+      });
+
+      console.log("user data for user table", {
+        email: userData.Email,
+        firstName: userData?.Name?.split(" ")[0],
+        lastName: userData?.Name?.split(" ")[1],
+        stripeCustomerId: userData?.id,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+  }
 }
