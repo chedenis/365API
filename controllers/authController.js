@@ -885,10 +885,11 @@ async function storeMemberData(userData) {
           customer: customerId,
           status: "active",
           expand: ["data.plan.product"],
+          limit: 1000,
         });
 
         const subscriptionsList = subscriptions.data;
-        console.log("subscriptionsList", subscriptionsList);
+
         if (subscriptionsList.length > 0) {
           const findMemberShip = await MemberShip.findOne({
             stripe_customer_id: userData?.id,
