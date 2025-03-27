@@ -304,11 +304,16 @@ exports.login = async (req, res, next) => {
       return next(err);
     }
     if (!user) {
-      console.log("User not found", info.message);
       if (info?.isGenerateOtp && req?.body?.isMobile) {
         const getOtp = await generateOTP();
         const token = await getOtpJwtToken(info?.authData);
         await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
+        await sendRegisterEmailOTP(
+          info?.authData?.email,
+          "Registration OTP",
+          "member",
+          getOtp
+        );
         return res.status(200).json({
           message: info?.message,
           otp: getOtp,
