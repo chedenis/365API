@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { ClubAuth, User, Auth } = require("../models");
+const { ClubAuth, User, Auth, MemberShip } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
@@ -21,6 +21,7 @@ const {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const fs = require("fs");
 const csv = require("csv-parser");
+const Membership = require("../models/MemberShip");
 // JWT helper function
 const generateToken = (user) => {
   return jwt.sign(
@@ -32,6 +33,8 @@ const generateToken = (user) => {
     { expiresIn: "48h" } // Adjust expiration as needed
   );
 };
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Check login status
 exports.getLoginStatus = async (req, res) => {
@@ -791,11 +794,13 @@ exports.memberMigration = async (req, res) => {
 
     const testEmailForSendEmail = [
       "bbhojani@sigmasolve.com",
-      // "pbhut@sigmasolve.com",
-      // "dshah@sigmasolve.net",
+      "pbhut@sigmasolve.com",
+      "dshah@sigmasolve.net",
     ];
 
+    // don't make false without permission
     const needToStoreTestDataOnly = true;
+    // don't make false without permission
 
     fs.createReadStream(req.file.path)
       .pipe(csv())
@@ -872,35 +877,73 @@ async function storeMemberData(userData) {
       });
       await newAuth.save();
 
-      let user = newAuth;
+      // get membership data and add in our database
+      try {
+        const customerId = userData?.id;
 
-      if (!user) return res.status(404).json({ message: "User not found" });
-      const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "active",
+          expand: ["data.plan.product"],
+          limit: 1000,
+        });
 
-      const resetTokenData = new ResetToken({
-        userId: user._id,
-        token: resetToken,
-        createdAt: new Date(),
-      });
+        const subscriptionsList = subscriptions.data;
 
-      await resetTokenData.save();
+        if (subscriptionsList.length > 0) {
+          const findMemberShip = await MemberShip.findOne({
+            stripe_customer_id: userData?.id,
+          });
 
-      const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
-      await sendEmail(userData.Email, "ResetPassword", resetLink, "member");
+          const createOrUpdateObj = {
+            user: newUser?._id,
+            stripe_customer_id: userData?.id,
+            stripe_subscription_id: subscriptionsList[0]?.id,
+            status: subscriptionsList[0]?.status,
+            start_date: subscriptionsList[0]?.current_period_start,
+            end_date: subscriptionsList[0]?.current_period_end,
+            auto_renew: !subscriptionsList[0]?.cancel_at_period_end,
+          };
+          console.log("findMemberShip", findMemberShip);
+          if (findMemberShip) {
+            await MemberShip.findByIdAndUpdate(
+              findMemberShip?._id,
+              createOrUpdateObj
+            );
+          } else {
+            const membership = await MemberShip.create(createOrUpdateObj);
+            await membership.save();
+          }
+          await User.findByIdAndUpdate(newUser?._id, {
+            membershipStatus: subscriptionsList[0]?.status,
+          });
+        }
+      } catch (error) {
+        console.log("membership error", error);
+      }
 
-      console.log("user data for auth table", {
-        email: userData.Email,
-        isVerified: true,
-      });
+      //send email for reset password
+      try {
+        let user = newAuth;
 
-      console.log("user data for user table", {
-        email: userData.Email,
-        firstName: userData?.Name?.split(" ")[0],
-        lastName: userData?.Name?.split(" ")[1],
-        stripeCustomerId: userData?.id,
-      });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+          expiresIn: "1h",
+        });
+
+        const resetTokenData = new ResetToken({
+          userId: user._id,
+          token: resetToken,
+          createdAt: new Date(),
+        });
+
+        await resetTokenData.save();
+
+        const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
+        await sendEmail(userData.Email, "ResetPassword", resetLink, "member");
+      } catch (error) {
+        console.log("send email error", error);
+      }
     }
   } catch (error) {
     console.log("error", error);
