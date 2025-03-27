@@ -66,7 +66,9 @@ const clubAuthSchema = new mongoose.Schema(
     },
     randomString: {
       type: String,
-      default: randomstring.generate(),
+      default: function () {
+        return randomstring.generate();
+      },
     },
   },
   {
@@ -81,6 +83,57 @@ clubAuthSchema.pre("save", async function (next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Pre-save hook to ensure randomString is unique
+clubAuthSchema.pre("save", async function (next) {
+  if (!this.isModified("randomString")) return next();
+
+  try {
+    // Determine the model name based on the environment
+    let modelName = "ClubAuth";
+    if (process.env.NODE_ENV === "qa") {
+      modelName = "ClubAuthQA";
+    } else if (process.env.NODE_ENV === "production") {
+      modelName = "ClubAuthPROD";
+    }
+
+    // Get the model to query existing records
+    const Model = mongoose.model(modelName);
+
+    // Try to find a unique randomString (max 5 attempts to avoid infinite loops)
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (!isUnique && attempts < maxAttempts) {
+      // Generate a new random string
+      this.randomString = randomstring.generate();
+
+      // Check if it exists in the database
+      const existingDoc = await Model.findOne({
+        randomString: this.randomString,
+      });
+
+      if (!existingDoc) {
+        isUnique = true;
+      }
+
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return next(
+        new Error(
+          "Failed to generate a unique random string after multiple attempts"
+        )
+      );
+    }
+
     next();
   } catch (err) {
     return next(err);
