@@ -360,6 +360,30 @@ const sendEmailForRegister = async (
         text-decoration: none;
         color: ${receiverRole == "club" ? "#37C597" : "rgb(255, 6, 230)"};
         }
+        @media (max-width: 575px) {
+            .container {
+                padding: 20px 15px;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .logo img {
+                max-width: 200px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .confirm,
+            .note {
+                font-size: 14px;
+            }
+
+            .footer {
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 
