@@ -71,9 +71,9 @@ exports.register = async (req, res) => {
     const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+      return res.status(400).json({
+        message: "Kindly ensure that both email and password are provided.",
+      });
     }
 
     // Check if the user already exists
@@ -97,7 +97,8 @@ exports.register = async (req, res) => {
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          message: "Member already exist please verify it",
+          message:
+            "The user already exists in the system. Please proceed with user verification",
           token: getOtpJwtToken(findByInactiveUser),
           otp: otp,
         });
@@ -127,7 +128,8 @@ exports.register = async (req, res) => {
       if (isMobile) {
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          message: "User registered successfully please verify to login",
+          message:
+            "The user has been successfully registered. Kindly proceed with verification.",
           token: getOtpJwtToken(newAuth),
           otp: otp,
         });
@@ -163,7 +165,8 @@ exports.registerResendOtp = async (req, res) => {
 
       await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
       return res.status(200).json({
-        message: "Member already exist please verify it",
+        message:
+          "The user already exists in the system. Please proceed with user verification",
         token: getOtpJwtToken(findUser),
         otp: otp,
       });
