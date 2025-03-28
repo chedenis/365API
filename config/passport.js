@@ -33,7 +33,7 @@ passport.use(
         if (!auth?.isVerified) {
           return done(null, false, {
             isGenerateOtp: true,
-            message: "You have to confirm your email address before login",
+            message: "Please confirm your email address before logging in",
             authData: auth,
             isVerified: false,
           });
