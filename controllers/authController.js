@@ -13,6 +13,7 @@ const {
   sendEmailOTP,
   sendEmailForRegister,
   sendRegisterEmailOTP,
+  sendEmailToOldUserForResetPassword,
 } = require("../utils/mailer");
 const {
   checkMemberShipStatus,
@@ -943,7 +944,14 @@ async function storeMemberData(userData) {
         await resetTokenData.save();
 
         const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
-        await sendEmail(userData.Email, "ResetPassword", resetLink, "member");
+        await sendEmailToOldUserForResetPassword(
+          userData.Email,
+          "ResetPassword",
+          {
+            name: userData.Name,
+            resetUrl: resetLink,
+          }
+        );
       } catch (error) {
         console.log("send email error", error);
       }

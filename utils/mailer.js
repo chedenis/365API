@@ -502,10 +502,188 @@ const sendRegisterEmailOTP = async (to, subject, role, otp) => {
   }
 };
 
+const sendEmailToOldUserForResetPassword = async (to, subject, extraData) => {
+  try {
+    // Create an SES client
+    const sesClient = new SESClient();
+
+    const htmlContent = `
+    <!DOCTYPE html>
+<html>
+
+<head>
+    <title>Email Signup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #333;
+            background-color: rgb(255, 249, 255);
+        }
+
+        .container {
+            max-width: 800px;
+            background-color: #ffffff;
+            margin: 0 auto;
+            padding: 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 300px;
+        }
+
+        .wrapper {
+            margin-bottom: 30px;
+        }
+
+        .wrapper p {
+            line-height: 28px;
+        }
+
+        .wrapper a {
+            color: rgb(255, 6, 230);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .button {
+            border: 1px solid rgb(255, 6, 230);
+            padding: 10px 30px;
+            font-size: 16px;
+            color: white;
+            background-color: rgb(255, 6, 230);
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .button:hover {
+            background-color: transparent;
+            color: rgb(255, 6, 230);
+        }
+
+        .link {
+            color: rgb(255, 6, 230);
+            font-weight: bold;
+        }
+
+        .note {
+            background-color: #6E6E6E;
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        /* .note {
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        } */
+
+        .footer {
+            text-align: center;
+            font-size: 18px;
+        }
+
+        @media (max-width: 575px) {
+            .container {
+                padding: 20px 15px;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .logo img {
+                max-width: 200px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .confirm,
+            .note {
+                font-size: 14px;
+            }
+
+            .footer {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+
+<body style="font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #333;
+            background-color: rgb(255, 249, 255);">
+    <div class="container">
+        <div class="logo">
+            <img src="${process.env.BACKEND_PRODUCTION_URL}/images/365DinkLogoWithText.jpg" />
+        </div>
+
+        <div class="wrapper">
+            <p>Dear ${extraData?.name},</p>
+            <p>We’re thrilled to share some exciting news: <a href="${process.env?.FRONTEND_URL}">365dink.com</a> has been
+                relaunched with a fresh new look, and our mobile app is better than ever! 🎾📲</p>
+            <p>To get started, please reset your password here: <a href="${extraData?.resetUrl}">Reset
+                    Password</a>. <br />Follow the instructions to set up your new password and dive into the updated
+                experience.</p>
+            <p>As a big thank-you for your patience during this transition, we’re extending your membership <strong>for
+                    free for an entire year</strong>! That means you’ll have unlimited access to hundreds of private and
+                semi-private clubs in our network—ready for you to hit the courts whenever you’d like.</p>
+            <p>We’re so grateful to have you with us and can’t wait to see you out there enjoying the game.</p>
+            <p>0-0-2<br>The 365Dink Team</p>
+        </div>
+    </div>
+</body>
+
+</html>
+    `;
+
+    const emailParams = {
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Body: {
+          Html: {
+            Data: htmlContent,
+          },
+        },
+        Subject: {
+          Data: subject,
+        },
+      },
+      Source: '"365Dink Support" <noreply@365Dink.com>', // Replace with your SES-verified email/domain
+    };
+
+    // Send the email
+    const command = new SendEmailCommand(emailParams);
+    await sesClient.send(command);
+    console.log("Email sent successfully via SES.");
+  } catch (error) {
+    console.error("Error sending email via SES:", error);
+    throw new Error("Unable to send email.");
+  }
+};
+
 module.exports = {
   sendEmail,
   sendEmailOTP,
   sendEmailForClubComments,
   sendEmailForRegister,
   sendRegisterEmailOTP,
+  sendEmailToOldUserForResetPassword,
 };
