@@ -20,15 +20,6 @@ passport.use(
           });
         }
 
-        if (!auth?.isVerified) {
-          return done(null, false, {
-            isGenerateOtp: true,
-            message: "You have to confirm your email address before login",
-            authData: auth,
-            isVerified: false,
-          });
-        }
-
         // If password comparison still fails, check their actual values
         const isMatch = bcrypt.compareSync(
           password.trim(),
@@ -37,6 +28,15 @@ passport.use(
 
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
+        }
+
+        if (!auth?.isVerified) {
+          return done(null, false, {
+            isGenerateOtp: true,
+            message: "Please confirm your email address before logging in",
+            authData: auth,
+            isVerified: false,
+          });
         }
 
         const user = await User.findById(auth.user);

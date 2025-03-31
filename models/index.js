@@ -37,6 +37,7 @@ const MemberShipModuleName = "MemberShip";
 const PaymentModuleName = "Payment";
 const ClubCommentsModuleName = "ClubComments";
 const NotificationModuleName = "Notification";
+const MobileAppVersionModuleName = "MobileAppVersion";
 
 // Import schemas
 const ClubSchema = require("./Club");
@@ -48,6 +49,7 @@ const MemberShipSchema = require("./MemberShip");
 const PaymentSchema = require("./Payment");
 const ClubCommentsSchema = require("./ClubComments");
 const NotificationSchema = require("./Notification");
+const MobileAppVersionSchema = require("./MobileAppVersion");
 
 // Register each model only once with the dynamic name
 const Club =
@@ -74,6 +76,9 @@ const ClubComments =
 const Notification =
   mongoose.models[NotificationModuleName] ||
   mongoose.model(NotificationModuleName, NotificationSchema);
+const MobileAppVersion =
+  mongoose.models[MobileAppVersionModuleName] ||
+  mongoose.model(MobileAppVersionModuleName, MobileAppVersionSchema);
 
 console.log("Registered models:", mongoose.modelNames());
 
@@ -88,4 +93,5 @@ module.exports = {
   Payment,
   ClubComments,
   Notification,
+  MobileAppVersion,
 };

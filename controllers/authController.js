@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { ClubAuth, User, Auth } = require("../models");
+const { ClubAuth, User, Auth, MemberShip } = require("../models");
 const { ConnectionClosedEvent } = require("mongodb");
 const ResetToken = require("../models/ResetToken");
 const URL = process.env.FRONTEND_URL;
@@ -19,7 +19,9 @@ const {
   defaultServerErrorMessage,
 } = require("../utils/common");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+const fs = require("fs");
+const csv = require("csv-parser");
+const Membership = require("../models/MemberShip");
 // JWT helper function
 const generateToken = (user) => {
   return jwt.sign(
@@ -31,6 +33,8 @@ const generateToken = (user) => {
     { expiresIn: "48h" } // Adjust expiration as needed
   );
 };
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Check login status
 exports.getLoginStatus = async (req, res) => {
@@ -67,9 +71,9 @@ exports.register = async (req, res) => {
     const { email, password, firstName, lastName, isMobile } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+      return res.status(400).json({
+        message: "Kindly ensure that both email and password are provided.",
+      });
     }
 
     // Check if the user already exists
@@ -93,7 +97,8 @@ exports.register = async (req, res) => {
 
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          message: "Member already exist please verify it",
+          message:
+            "The user already exists in the system. Please proceed with user verification",
           token: getOtpJwtToken(findByInactiveUser),
           otp: otp,
         });
@@ -123,7 +128,8 @@ exports.register = async (req, res) => {
       if (isMobile) {
         await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
         return res.status(200).json({
-          message: "User registered successfully please verify to login",
+          message:
+            "The user has been successfully registered. Kindly proceed with verification.",
           token: getOtpJwtToken(newAuth),
           otp: otp,
         });
@@ -159,7 +165,8 @@ exports.registerResendOtp = async (req, res) => {
 
       await sendRegisterEmailOTP(email, "Registration OTP", "member", otp);
       return res.status(200).json({
-        message: "Member already exist please verify it",
+        message:
+          "The user already exists in the system. Please proceed with user verification",
         token: getOtpJwtToken(findUser),
         otp: otp,
       });
@@ -303,11 +310,16 @@ exports.login = async (req, res, next) => {
       return next(err);
     }
     if (!user) {
-      console.log("User not found", info.message);
       if (info?.isGenerateOtp && req?.body?.isMobile) {
         const getOtp = await generateOTP();
         const token = await getOtpJwtToken(info?.authData);
         await Auth.findByIdAndUpdate(info?.authData?._id, { otp: `${getOtp}` });
+        await sendRegisterEmailOTP(
+          info?.authData?.email,
+          "Registration OTP",
+          "member",
+          getOtp
+        );
         return res.status(200).json({
           message: info?.message,
           otp: getOtp,
@@ -773,6 +785,69 @@ exports.makeEveryMemberVerified = async (req, res) => {
   }
 };
 
+exports.memberMigration = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "No file uploaded or file is not a CSV" });
+    }
+
+    const results = [];
+
+    const testEmailForSendEmail = [
+      "bbhojani@sigmasolve.com",
+      "pbhut@sigmasolve.com",
+      "dshah@sigmasolve.net",
+    ];
+
+    // don't make false without permission
+    const needToStoreTestDataOnly = true;
+    // don't make false without permission
+
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        // Delete the file after processing
+        fs.unlinkSync(req.file.path);
+
+        for (let i = 0; i < results.length; i++) {
+          try {
+            const userData = results[i];
+
+            if (userData?.id) {
+              if (
+                !needToStoreTestDataOnly ||
+                testEmailForSendEmail.includes(userData.Email)
+              ) {
+                storeMemberData(userData);
+              }
+            }
+          } catch (error) {
+            console.log("error", error);
+          }
+        }
+
+        res.json({
+          success: true,
+          data: results,
+          rowCount: results.length,
+        });
+      })
+      .on("error", (error) => {
+        console.error("Error parsing CSV:", error);
+        res.status(500).json({ error: "Failed to parse CSV file" });
+      });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
+  }
+};
+
 function getOtpJwtToken(user) {
   const generateToken = jwt.sign(
     { id: user._id },
@@ -782,4 +857,98 @@ function getOtpJwtToken(user) {
     }
   );
   return generateToken;
+}
+
+async function storeMemberData(userData) {
+  try {
+    const findUser = await User.findOne({ email: userData.Email });
+    if (!findUser) {
+      const newUser = new User({
+        email: userData.Email,
+        firstName: userData?.Name?.split(" ")[0],
+        lastName: userData?.Name?.split(" ")[1],
+        stripeCustomerId: userData?.id,
+      });
+
+      await newUser.save();
+
+      const newAuth = new Auth({
+        email: userData.Email,
+        isVerified: true,
+        user: newUser?._id,
+        password: "dink@123",
+      });
+      await newAuth.save();
+
+      // get membership data and add in our database
+      try {
+        const customerId = userData?.id;
+
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "active",
+          expand: ["data.plan.product"],
+          limit: 1000,
+        });
+
+        const subscriptionsList = subscriptions.data;
+
+        if (subscriptionsList.length > 0) {
+          const findMemberShip = await MemberShip.findOne({
+            stripe_customer_id: userData?.id,
+          });
+
+          const createOrUpdateObj = {
+            user: newUser?._id,
+            stripe_customer_id: userData?.id,
+            stripe_subscription_id: subscriptionsList[0]?.id,
+            status: subscriptionsList[0]?.status,
+            start_date: subscriptionsList[0]?.current_period_start,
+            end_date: subscriptionsList[0]?.current_period_end,
+            auto_renew: !subscriptionsList[0]?.cancel_at_period_end,
+          };
+          console.log("findMemberShip", findMemberShip);
+          if (findMemberShip) {
+            await MemberShip.findByIdAndUpdate(
+              findMemberShip?._id,
+              createOrUpdateObj
+            );
+          } else {
+            const membership = await MemberShip.create(createOrUpdateObj);
+            await membership.save();
+          }
+          await User.findByIdAndUpdate(newUser?._id, {
+            membershipStatus: subscriptionsList[0]?.status,
+          });
+        }
+      } catch (error) {
+        console.log("membership error", error);
+      }
+
+      //send email for reset password
+      try {
+        let user = newAuth;
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+        const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+          expiresIn: "1h",
+        });
+
+        const resetTokenData = new ResetToken({
+          userId: user._id,
+          token: resetToken,
+          createdAt: new Date(),
+        });
+
+        await resetTokenData.save();
+
+        const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
+        await sendEmail(userData.Email, "ResetPassword", resetLink, "member");
+      } catch (error) {
+        console.log("send email error", error);
+      }
+    }
+  } catch (error) {
+    console.log("error", error);
+  }
 }
