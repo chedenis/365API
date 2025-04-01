@@ -4,7 +4,7 @@ const {
   S3Client,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
-const { User, MemberShip, Auth } = require("../models");
+const { User, MemberShip, Auth, Payment } = require("../models");
 const flattenUpdates = require("../utils/flattenUpdates");
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
@@ -20,6 +20,7 @@ const {
   checkMemberShipStatus,
   defaultServerErrorMessage,
 } = require("../utils/common");
+const deleteCustomer = require("../helper/stripe/delete-customer");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -142,6 +143,44 @@ exports.getUserProfile = async (req, res) => {
     res
       .status(500)
       .json({ error: "Error fetching user profile", details: err.message });
+  }
+};
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const user = req.user;
+    const userId = user?.id;
+
+    await Payment.deleteMany({
+      user: userId,
+    });
+
+    await MemberShip.deleteMany({
+      user: userId,
+    });
+
+    await Auth.deleteMany({
+      user: userId,
+    });
+
+    await User.deleteMany({
+      _id: userId,
+    });
+
+    if (user?.stripeCustomerId) {
+      await deleteCustomer(user?.stripeCustomerId);
+    }
+
+    return res.status(200).json({
+      message: "User deleted successfully",
+      status: true,
+    });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      message: defaultServerErrorMessage,
+      status: false,
+    });
   }
 };
 
