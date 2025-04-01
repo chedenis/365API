@@ -161,29 +161,23 @@ exports.readClubById = async (req, res) => {
 exports.getClubById = async (req, res) => {
   try {
     const { id } = req.params;
-    let club = await Club.findById(id).lean();
-    let latestClub = await Club.findOne({ parentClubId: id });
+    let club = await Club.findOne({ _id: id, status: "Complete" }).lean();
+
+    if (!club) {
+      return res.status(404).json({
+        message: "Club not found",
+        club: {},
+        referralCode: "",
+      });
+    }
+
     const clubAuth = await ClubAuth.findOne({ clubs: id })
       .select("referralCode")
       .lean();
 
-    if (club?.status == "Complete" && !latestClub) {
-      return res
-        .status(200)
-        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
-    } else if (
-      ["Re Approve Request", "Re Approve", "Reject"].includes(
-        latestClub?.status
-      )
-    ) {
-      return res
-        .status(200)
-        .json({ club: club, referralCode: clubAuth?.referralCode || "" });
-    } else {
-      return res
-        .status(404)
-        .json({ message: "Club not found", club: {}, referralCode: "" });
-    }
+    return res
+      .status(200)
+      .json({ club: club, referralCode: clubAuth?.referralCode || "" });
   } catch (err) {
     console.error("Error fetching club", err);
     res
