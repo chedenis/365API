@@ -1,9 +1,10 @@
 const dayjs = require("dayjs");
 const { stripe } = require("../../config/stripe");
 
-exports.calculateCancellationDetails = (startDate) => {
-  const now = dayjs("2026-04-15");
-  // const now = dayjs();
+exports.calculateCancellationDetails = (startDate, testMode = false) => {
+  // const now = dayjs("2026-04-15");
+ 
+  const now = dayjs();
   const renewalDate = startDate.add(1, "year");
   const gracePeriodEnd = renewalDate.add(30, "day");
   const sixMonthMark = renewalDate.add(6, "month");
@@ -12,7 +13,11 @@ exports.calculateCancellationDetails = (startDate) => {
   let cancelDate = renewalDate;
   let cancellationType = "first_year";
 
-  if (now.isBefore(renewalDate)) {
+  if (testMode) {
+    console.log("Test Mode: Expiring subscription in 3 seconds");
+    cancelDate = now.add(3, "minute"); // Set cancel time to 3 seconds
+    cancellationType = "test_expire";
+  } else if (now.isBefore(renewalDate)) {
     console.log("first year");
     cancelDate = renewalDate;
     cancellationType = "first_year";
@@ -41,7 +46,11 @@ exports.cancelMembershipAndRefund = async (
   refundPercentage,
   cancellationType
 ) => {
-  if (
+  if (cancellationType === "test_expire") {
+    await stripe.subscriptions.update(membership.stripe_subscription_id, {
+      cancel_at: cancelDate.unix(),
+    });
+  } else if (
     cancellationType === "first_year" ||
     cancellationType === "after_6_months"
   ) {

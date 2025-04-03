@@ -3,47 +3,40 @@ const { MemberShip, User } = require("../../models");
 
 async function handleSubscriptionUpdated(subscription) {
   console.log(subscription, "subscription");
+
   try {
     const membership = await MemberShip.findOne({
       stripe_subscription_id: subscription.id,
-    }).lean();
+    });
 
     if (!membership) {
       console.error("Membership not found for subscription:", subscription.id);
+      return;
     }
 
     // Map Stripe status to our membership status
-    console.log(subscription.status, "subscription.status");
-    let membershipStatus;
-    switch (subscription.status) {
-      case "active":
-        membershipStatus = "active";
-        break;
-      case "past_due":
-        membershipStatus = "past_due";
-        break;
-      case "canceled":
-        membershipStatus = "canceled";
-        break;
-      case "unpaid":
-        membershipStatus = "inactive";
-        break;
-      default:
-        membershipStatus = "inactive";
-    }
+    const statusMapping = {
+      active: "active",
+      past_due: "past_due",
+      canceled: "canceled",
+      unpaid: "inactive",
+      default: "inactive",
+    };
 
-    const membershipAfterUpdate = await MemberShip.findOne({
-      stripe_subscription_id: subscription.id,
-    });
-    console.log(membershipStatus, "membershipStatus");
-    // Update membership status
-    membershipAfterUpdate.status = membershipStatus;
+    membership.status = statusMapping[subscription.status] || "inactive";
     membership.auto_renew = subscription.canceled_at
       ? false
       : !subscription.cancel_at_period_end;
-    await membershipAfterUpdate.save();
 
-    const statusObj = {
+    if (subscription.cancel_at) {
+      membership.status = "canceled";
+      membership.auto_renew = false;
+    }
+
+    await membership.save();
+
+    // Map to User's membershipStatus field
+    const userStatusMapping = {
       active: "Active",
       past_due: "Inactive",
       canceled: "Inactive",
@@ -51,9 +44,10 @@ async function handleSubscriptionUpdated(subscription) {
       inactive: "Inactive",
     };
 
-    await User.findByIdAndUpdate(membership?.user, {
-      membershipStatus: statusObj[membershipStatus],
+    await User.findByIdAndUpdate(membership.user, {
+      membershipStatus: userStatusMapping[subscription.status],
     });
+
     return true;
   } catch (error) {
     console.error("Error handling subscription updated:", error);

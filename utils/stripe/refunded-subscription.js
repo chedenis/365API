@@ -8,10 +8,14 @@ async function handleChargeRefunded(charge) {
 
     if (!userEmail && charge?.customer) {
       const customer = await stripe.customers.retrieve(charge?.customer);
-      console.log(customer,"customer")
+      console.log(customer, "customer");
       userEmail = customer?.email;
     }
-console.log(charge?.billing_details?.email ,charge?.receipt_emailuserEmail,"userEmail")
+    console.log(
+      charge?.billing_details?.email,
+      charge?.receipt_emailuserEmail,
+      "userEmail"
+    );
     const membership = await MemberShip.findOne({
       stripe_charge_id: charge.id,
     });
@@ -24,7 +28,7 @@ console.log(charge?.billing_details?.email ,charge?.receipt_emailuserEmail,"user
     const totalAmount = charge?.amount;
     const refundedAmount = charge?.amount_refunded;
 
-    membership.refund_amount = refundedAmount;
+    membership.refund_amount = refundedAmount / 100;
     membership.refund_status =
       refundedAmount === totalAmount ? "Refunded" : "Partial Refund";
     membership.refund_date = new Date();

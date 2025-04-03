@@ -95,6 +95,7 @@ exports.stripeWebhookHandler = async (req, res) => {
 
     case "customer.subscription.updated": {
       const subscription = event.data.object;
+      console.log("subscription updated")
       // Handle subscription changes
       setTimeout(async () => {
         await handleSubscriptionUpdated(subscription);
@@ -104,6 +105,7 @@ exports.stripeWebhookHandler = async (req, res) => {
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
+      console.log("subscription deleted")
       // Handle subscription cancellation
       await handleSubscriptionDeleted(subscription);
       break;

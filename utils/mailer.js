@@ -690,23 +690,25 @@ const sendRefundEmail = async (to, subject, refundAmount) => {
   <title>Refund Processed</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      padding: 20px;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    color: #333;
+    background-color: rgb(255, 249, 255);
     }
     .container {
-      max-width: 500px;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-      margin: auto;
+    max-width: 800px;
+    background-color: #ffffff;
+    margin: 0 auto;
+    padding: 40px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .header {
       font-size: 20px;
       font-weight: bold;
       text-align: center;
-      color: #333;
+     color: rgb(255, 6, 230);
     }
     .content {
       font-size: 16px;
@@ -726,14 +728,14 @@ const sendRefundEmail = async (to, subject, refundAmount) => {
   <div class="container">
     <div class="header">Refund Processed Successfully</div>
     <div class="content">
-      We have successfully processed your refund of <strong>$${
-        refundAmount / 100
-      }</strong>.  
+      We have successfully processed your refund of <strong>$${refundAmount}</strong>.  
+    </div>
+     <div class="content">
       It may take 5-10 business days to reflect in your account.  
     </div>
-    <div class="footer">
-      Thank you for using our service!<br>
-      <strong>Your Support Team</strong>
+   <div class="footer">
+      Thanks,<br>
+     The 365Dink Team
     </div>
   </div>
 </body>
