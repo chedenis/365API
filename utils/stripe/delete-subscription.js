@@ -36,7 +36,7 @@ async function handleSubscriptionDeleted(subscription) {
 
     // Update membership to canceled status
     membership.status = "canceled";
-
+console.log(membership,"membership")
     await membership.save();
     return true;
   } catch (error) {

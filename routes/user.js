@@ -6,6 +6,7 @@ const {
   generateMemberPresignedUrl,
   checkMemberShipStatus,
   updateMemberIdWithSerialNumber,
+  deleteAccount,
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/auth");
 
@@ -21,5 +22,6 @@ router.patch("/profile", authMiddleware, updateUserProfile);
 
 router.post("/generate-upload-url", authMiddleware, generateMemberPresignedUrl);
 router.get("/update-memberId", authMiddleware, updateMemberIdWithSerialNumber);
+router.delete("/delete", authMiddleware, deleteAccount);
 
 module.exports = router;

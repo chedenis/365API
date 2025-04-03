@@ -41,17 +41,6 @@ exports.cancelMembershipAndRefund = async (
   refundPercentage,
   cancellationType
 ) => {
-  console.log(
-    membership,
-    cancelDate,
-    refundPercentage,
-    cancellationType,
-    "test"
-  );
-  const stripeSubscription = await stripe.subscriptions.retrieve(
-    membership.stripe_subscription_id
-  );
-
   if (
     cancellationType === "first_year" ||
     cancellationType === "after_6_months"
