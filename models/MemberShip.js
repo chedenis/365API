@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
 
-let modelName = "MemberShip";
-
 const memberShipSchema = new mongoose.Schema(
   {
     user: {
@@ -27,6 +25,9 @@ const memberShipSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    stripe_charge_id: String,
+    refund_amount: Number,
+    refund_status: String,
   },
   {
     timestamps: true,
@@ -36,6 +37,13 @@ const memberShipSchema = new mongoose.Schema(
 memberShipSchema.index({ user: 1 });
 memberShipSchema.index({ stripe_customer_id: 1 });
 memberShipSchema.index({ stripe_subscription_id: 1 });
+
+let modelName = "MemberShipLocal";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "MemberShipQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "MemberShip";
+}
 
 const Membership =
   mongoose.models[modelName] || mongoose.model(modelName, memberShipSchema);

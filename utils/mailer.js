@@ -679,6 +679,96 @@ const sendEmailToOldUserForResetPassword = async (to, subject, extraData) => {
   }
 };
 
+const sendRefundEmail = async (to, subject, refundAmount) => {
+  try {
+    // Create an SES client
+    const sesClient = new SESClient();
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Refund Processed</title>
+  <style>
+    body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    color: #333;
+    background-color: rgb(255, 249, 255);
+    }
+    .container {
+    max-width: 800px;
+    background-color: #ffffff;
+    margin: 0 auto;
+    padding: 40px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+     color: rgb(255, 6, 230);
+    }
+    .content {
+      font-size: 16px;
+      color: #555;
+      margin-top: 15px;
+      text-align: center;
+    }
+    .footer {
+      font-size: 14px;
+      color: #777;
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Refund Processed Successfully</div>
+    <div class="content">
+      We have successfully processed your refund of <strong>$${refundAmount}</strong>.  
+    </div>
+     <div class="content">
+      It may take 5-10 business days to reflect in your account.  
+    </div>
+   <div class="footer">
+      Thanks,<br>
+     The 365Dink Team
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+    const emailParams = {
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Body: {
+          Html: {
+            Data: htmlContent,
+          },
+        },
+        Subject: {
+          Data: subject,
+        },
+      },
+      Source: '"365Dink Support" <noreply@365Dink.com>', // Replace with your SES-verified email/domain
+    };
+
+    // Send the email
+    const command = new SendEmailCommand(emailParams);
+    await sesClient.send(command);
+    console.log("Email sent successfully via SES.");
+  } catch (error) {
+    console.error("Error sending email via SES:", error);
+    throw new Error("Unable to send email.");
+  }
+};
+
 module.exports = {
   sendEmail,
   sendEmailOTP,
@@ -686,4 +776,5 @@ module.exports = {
   sendEmailForRegister,
   sendRegisterEmailOTP,
   sendEmailToOldUserForResetPassword,
+  sendRefundEmail,
 };
