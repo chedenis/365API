@@ -32,9 +32,19 @@ const ResetTokenModelName =
     : environment === "qa"
     ? "ResetTokenQA"
     : "ResetToken";
+const MemberShipModuleName =
+  environment === "production"
+    ? "MemberShip"
+    : environment === "qa"
+    ? "MemberShipQA"
+    : "MemberShipLocal";
+const PaymentModuleName =
+  environment === "production"
+    ? "Payment"
+    : environment === "qa"
+    ? "PaymentQA"
+    : "PaymentLocal";
 
-const MemberShipModuleName = "MemberShip";
-const PaymentModuleName = "Payment";
 const ClubCommentsModuleName = "ClubComments";
 const NotificationModuleName = "Notification";
 const MobileAppVersionModuleName = "MobileAppVersion";

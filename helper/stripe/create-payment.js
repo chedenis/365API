@@ -18,6 +18,7 @@ const createPayment = async (stripeCustomerId, userId) => {
       metadata: {
         userId: userId.toString(),
       },
+      expires_at: Math.floor(Date.now() / 1000) + 8 * 60 * 60,
     });
 
     return { status: true, url: session.url };

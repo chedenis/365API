@@ -1,4 +1,9 @@
 const { MemberShip, User } = require("../../models");
+const {
+  calculateCancellationDetails,
+  cancelMembershipAndRefund,
+} = require("../stripe/cancellation-detail");
+const dayjs = require("dayjs");
 
 async function handleSubscriptionDeleted(subscription) {
   try {
@@ -12,14 +17,25 @@ async function handleSubscriptionDeleted(subscription) {
       return;
     }
 
+    // Get cancellation details
+    const { cancelDate, refundPercentage, cancellationType } =
+      calculateCancellationDetails(dayjs(membership?.start_date));
+
+    // Update membership to canceled status
+    await cancelMembershipAndRefund(
+      membership,
+      cancelDate,
+      refundPercentage,
+      cancellationType
+    );
+
+    // Update user membership status
+    await User.findByIdAndUpdate(membership?.user, {
+      membershipStatus: "Expired",
+    });
+
     // Update membership to canceled status
     membership.status = "canceled";
-    membership.auto_renew = false;
-
-    //Update users membership status
-    await User.findByIdAndUpdate(membership?.user, {
-      membershipStatus: "Inactive",
-    });
 
     await membership.save();
     return true;

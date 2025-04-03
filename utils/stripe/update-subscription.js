@@ -2,6 +2,7 @@ const { stripe } = require("../../config/stripe");
 const { MemberShip, User } = require("../../models");
 
 async function handleSubscriptionUpdated(subscription) {
+  console.log(subscription, "subscription");
   try {
     const membership = await MemberShip.findOne({
       stripe_subscription_id: subscription.id,
@@ -12,6 +13,7 @@ async function handleSubscriptionUpdated(subscription) {
     }
 
     // Map Stripe status to our membership status
+    console.log(subscription.status, "subscription.status");
     let membershipStatus;
     switch (subscription.status) {
       case "active":
@@ -33,10 +35,12 @@ async function handleSubscriptionUpdated(subscription) {
     const membershipAfterUpdate = await MemberShip.findOne({
       stripe_subscription_id: subscription.id,
     });
-
+    console.log(membershipStatus, "membershipStatus");
     // Update membership status
     membershipAfterUpdate.status = membershipStatus;
-    membershipAfterUpdate.auto_renew = !subscription.cancel_at_period_end;
+    membership.auto_renew = subscription.canceled_at
+      ? false
+      : !subscription.cancel_at_period_end;
     await membershipAfterUpdate.save();
 
     const statusObj = {
