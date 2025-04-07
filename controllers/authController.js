@@ -577,6 +577,7 @@ exports.appleLogin = async (req, res, next) => {
       await Auth.findByIdAndUpdate(findExistRecord._id, {
         appleId,
         socialType: "apple",
+        isVerified: true,
       });
 
       const findUser = await User.findById(findExistRecord.user);
