@@ -28,6 +28,8 @@ const memberShipSchema = new mongoose.Schema(
     stripe_charge_id: String,
     refund_amount: Number,
     refund_status: String,
+    payment_count: Number,
+    total_spend: Number,
   },
   {
     timestamps: true,

@@ -24,7 +24,7 @@ const createPayment = async (stripeCustomerId, userId) => {
     return { status: true, url: session.url };
   } catch (error) {
     console.log("createCustomerCommon error", error);
-    return { status: false, url: session.url };
+    return { status: false, url: null };
   }
 };
 
