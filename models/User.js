@@ -54,9 +54,9 @@ userSchema.pre("save", async function (next) {
     const highestUser = await Model.findOne({}).sort({ memberId: -1 }).limit(1);
 
     let newMemberId;
-    if (highestUser.memberId) {
+    if (highestUser?.memberId) {
       // Parse memberId as number and increment
-      const currentNum = parseInt(highestUser.memberId);
+      const currentNum = parseInt(highestUser?.memberId);
       if (!isNaN(currentNum)) {
         // Format with leading zeros
         newMemberId = (currentNum + 1).toString().padStart(6, "0");

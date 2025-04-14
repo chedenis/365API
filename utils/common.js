@@ -88,6 +88,8 @@ exports.checkMemberShipStatus = async (userId) => {
           startDate: membership.start_date,
           endDate: membership.end_date,
           autoRenew: membership.auto_renew,
+          refundAmount: membership?.refund_amount,
+          refundStatus: membership?.refund_status,
           daysRemaining: Math.max(
             0,
             Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))

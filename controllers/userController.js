@@ -16,6 +16,8 @@ const handleSubscriptionUpdated = require("../utils/stripe/update-subscription")
 const handleInvoicePaid = require("../utils/stripe/invoice-paid");
 const handleSubscriptionDeleted = require("../utils/stripe/delete-subscription");
 const handlePaymentCreate = require("../utils/stripe/payment-create");
+const handleChargeRefunded = require("../utils/stripe/refunded-subscription");
+
 const {
   checkMemberShipStatus,
   defaultServerErrorMessage,
@@ -93,6 +95,7 @@ exports.stripeWebhookHandler = async (req, res) => {
 
     case "customer.subscription.updated": {
       const subscription = event.data.object;
+      console.log("subscription updated")
       // Handle subscription changes
       setTimeout(async () => {
         await handleSubscriptionUpdated(subscription);
@@ -102,15 +105,22 @@ exports.stripeWebhookHandler = async (req, res) => {
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
+      console.log("subscription deleted")
       // Handle subscription cancellation
       await handleSubscriptionDeleted(subscription);
       break;
     }
-
     case "payment_intent.succeeded": {
       const payment = event.data.object;
       // Handle subscription cancellation
       await handlePaymentCreate(payment);
+      break;
+    }
+
+    case "charge.refunded": {
+      console.log("refunded")
+      const charge = event.data.object;
+      await handleChargeRefunded(charge);
       break;
     }
 

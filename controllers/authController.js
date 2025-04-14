@@ -656,7 +656,6 @@ exports.appleLogin = async (req, res, next) => {
   }
 };
 
-
 exports.checkRecordForAppleLogin = async (req, res) => {
   try {
     const { appleId } = req.body;
@@ -769,9 +768,10 @@ exports.memberMigration = async (req, res) => {
     const results = [];
 
     const testEmailForSendEmail = [
+      "bhavyaa.sigmasolve@gmail.com",
+      "rkhatri@sigmasolve.com",
       "bbhojani@sigmasolve.com",
-      "pbhut@sigmasolve.com",
-      "dshah@sigmasolve.net",
+      "cancel1111@yopmail.com"
     ];
 
     // don't make false without permission
@@ -794,6 +794,7 @@ exports.memberMigration = async (req, res) => {
                 !needToStoreTestDataOnly ||
                 testEmailForSendEmail.includes(userData.Email)
               ) {
+                console.log(userData,"userData")
                 storeMemberData(userData);
               }
             }
@@ -833,26 +834,11 @@ function getOtpJwtToken(user) {
 }
 
 async function storeMemberData(userData) {
+  let newAuth;
   try {
     const findUser = await User.findOne({ email: userData.Email });
+    console.log(findUser,"findUser")
     if (!findUser) {
-      const newUser = new User({
-        email: userData.Email,
-        firstName: userData?.Name?.split(" ")[0],
-        lastName: userData?.Name?.split(" ")[1],
-        stripeCustomerId: userData?.id,
-      });
-
-      await newUser.save();
-
-      const newAuth = new Auth({
-        email: userData.Email,
-        isVerified: true,
-        user: newUser?._id,
-        password: "dink@123",
-      });
-      await newAuth.save();
-
       // get membership data and add in our database
       try {
         const customerId = userData?.id;
@@ -864,9 +850,43 @@ async function storeMemberData(userData) {
           limit: 1000,
         });
 
-        const subscriptionsList = subscriptions.data;
+        const subscriptionsList = subscriptions?.data;
+        console.log(subscriptionsList, "subscriptionsList");
 
-        if (subscriptionsList.length > 0) {
+        const userStatusMapping = {
+          active: "Active",
+          past_due: "Inactive",
+          canceled: "Inactive",
+          unpaid: "Inactive",
+          inactive: "Inactive",
+        };
+        console.log(
+          subscriptionsList?.[0]?.status,
+          userStatusMapping?.[subscriptionsList?.[0]?.status],
+          userStatusMapping?.[subscriptionsList?.[0]?.status] ?? "Inactive",
+          "test"
+        );
+        const newUser = new User({
+          email: userData?.Email,
+          firstName: userData?.Name?.split(" ")[0],
+          lastName: userData?.Name?.split(" ")[1],
+          stripeCustomerId: userData?.id,
+          membershipStatus:
+            userStatusMapping?.[subscriptionsList?.[0]?.status] ?? "Inactive",
+        });
+
+        await newUser.save();
+
+        newAuth = new Auth({
+          email: userData?.Email,
+          isVerified: true,
+          user: newUser?._id,
+          password: "dink@123",
+          createdAt: new Date(userData?.["Created (UTC)"]),
+        });
+        await newAuth.save();
+
+        if (subscriptionsList?.length > 0) {
           const findMemberShip = await MemberShip.findOne({
             stripe_customer_id: userData?.id,
           });
@@ -874,11 +894,18 @@ async function storeMemberData(userData) {
           const createOrUpdateObj = {
             user: newUser?._id,
             stripe_customer_id: userData?.id,
-            stripe_subscription_id: subscriptionsList[0]?.id,
-            status: subscriptionsList[0]?.status,
-            start_date: subscriptionsList[0]?.current_period_start,
-            end_date: subscriptionsList[0]?.current_period_end,
-            auto_renew: !subscriptionsList[0]?.cancel_at_period_end,
+            stripe_subscription_id: subscriptionsList?.[0]?.id,
+            status: subscriptionsList?.[0]?.status,
+            start_date: new Date(
+              subscriptionsList?.[0]?.current_period_start * 1000
+            ).toUTCString(),
+            end_date: new Date(
+              subscriptionsList?.[0]?.current_period_end * 1000
+            ).toUTCString(),
+            auto_renew: !subscriptionsList?.[0]?.cancel_at_period_end,
+            payment_count: userData?.["Payment Count"],
+            refund_amount: userData?.["Refunded Volume"],
+            total_spend: userData?.["Total Spend"],
           };
           console.log("findMemberShip", findMemberShip);
           if (findMemberShip) {
@@ -890,9 +917,6 @@ async function storeMemberData(userData) {
             const membership = await MemberShip.create(createOrUpdateObj);
             await membership.save();
           }
-          await User.findByIdAndUpdate(newUser?._id, {
-            membershipStatus: subscriptionsList[0]?.status,
-          });
         }
       } catch (error) {
         console.log("membership error", error);
@@ -917,10 +941,10 @@ async function storeMemberData(userData) {
 
         const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
         await sendEmailToOldUserForResetPassword(
-          userData.Email,
+          userData?.Email,
           "ResetPassword",
           {
-            name: userData.Name,
+            name: userData?.Name,
             resetUrl: resetLink,
           }
         );

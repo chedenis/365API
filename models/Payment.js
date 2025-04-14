@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
 
-let modelName = "Payment";
-
 const paymentSchema = new mongoose.Schema(
   {
     user: {
@@ -44,6 +42,13 @@ const paymentSchema = new mongoose.Schema(
 paymentSchema.index({ user: 1 });
 paymentSchema.index({ membership: 1 });
 paymentSchema.index({ stripe_invoice_id: 1 });
+
+let modelName = "PaymentLocal";
+if (process.env.NODE_ENV === "qa") {
+  modelName = "PaymentQA";
+} else if (process.env.NODE_ENV === "production") {
+  modelName = "Payment";
+}
 
 const Payment =
   mongoose.models[modelName] || mongoose.model(modelName, paymentSchema);

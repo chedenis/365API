@@ -1,9 +1,14 @@
 const { stripe } = require("../config/stripe");
+const dayjs = require("dayjs");
 const { MemberShip, User } = require("../models");
 const {
   checkMemberShipStatus,
   defaultServerErrorMessage,
 } = require("../utils/common");
+const {
+  calculateCancellationDetails,
+  cancelMembershipAndRefund,
+} = require("../utils/stripe/cancellation-detail");
 
 exports.checkMemberShipStatus = async (req, res) => {
   const userId = req.user._id;
@@ -85,22 +90,25 @@ exports.cancelMemberShipStatus = async (req, res) => {
         .json({ status: false, error: "Active membership not found" });
     }
 
-    // Cancel the subscription instantly
-    // await stripe.subscriptions.cancel(membership.stripe_subscription_id);
+    const startDate = dayjs(membership?.start_date);
+    const { cancelDate, refundPercentage, cancellationType } =
+      calculateCancellationDetails(startDate);
 
-    // cancel the subscription at period end
-    await stripe.subscriptions.update(membership.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    });
-
-    // Update our database
-    // membership.auto_renew = false;
-
-    // await membership.save();
+    await cancelMembershipAndRefund(
+      membership,
+      cancelDate,
+      refundPercentage,
+      cancellationType
+    );
 
     return res.status(200).json({
       success: true,
-      message: "Membership is canceled",
+      message: `Membership will be canceled on ${cancelDate?.format(
+        "YYYY-MM-DD"
+      )}.`,
+      refund: refundPercentage
+        ? `Refund of ${refundPercentage * 100}% issued.`
+        : "No refund applicable.",
     });
   } catch (error) {
     console.error("Error canceling membership:", error);
