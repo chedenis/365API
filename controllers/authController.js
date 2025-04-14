@@ -768,10 +768,12 @@ exports.memberMigration = async (req, res) => {
     const results = [];
 
     const testEmailForSendEmail = [
-      "bhavyaa.sigmasolve@gmail.com",
-      "rkhatri@sigmasolve.com",
+      "laura@365dink.com",
+      "vanessa@thedecorbrief.com",
+      "chesdenison@gmail.com",
+      "camilla@cmdconsulting.net",
       "bbhojani@sigmasolve.com",
-      "cancel1111@yopmail.com"
+      "rkhatri@sigmasolve.com",
     ];
 
     // don't make false without permission
@@ -794,7 +796,7 @@ exports.memberMigration = async (req, res) => {
                 !needToStoreTestDataOnly ||
                 testEmailForSendEmail.includes(userData.Email)
               ) {
-                console.log(userData,"userData")
+                console.log(userData, "userData");
                 storeMemberData(userData);
               }
             }
@@ -837,7 +839,7 @@ async function storeMemberData(userData) {
   let newAuth;
   try {
     const findUser = await User.findOne({ email: userData.Email });
-    console.log(findUser,"findUser")
+    console.log(findUser, "findUser");
     if (!findUser) {
       // get membership data and add in our database
       try {
