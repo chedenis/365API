@@ -7,6 +7,7 @@ const dayjs = require("dayjs");
 
 async function handleSubscriptionDeleted(subscription) {
   try {
+    console.log("Enter in deleted subscription")
     // Find the membership
     const membership = await MemberShip.findOne({
       stripe_subscription_id: subscription.id,
@@ -18,6 +19,7 @@ async function handleSubscriptionDeleted(subscription) {
     }
 
     if (membership.auto_renew === true) {
+      console.log("Auto renew")
       const startDate = dayjs(membership?.start_date);
       const { cancelDate, refundPercentage, cancellationType } =
         calculateCancellationDetails(startDate);
@@ -39,12 +41,16 @@ async function handleSubscriptionDeleted(subscription) {
       now.isBefore(currentPeriodEnd),
       "test"
     );
-    if (!(!isScheduledCancellation && now.isBefore(currentPeriodEnd))) {
-      console.log("Scheduled expiration detected:", subscription.id);
+    if (
+      !(!isScheduledCancellation && now.isBefore(currentPeriodEnd)) ||
+      subscription?.status === "canceled"
+    ) {
+      console.log("Scheduled expiration detected:", subscription?.id);
       await User.findByIdAndUpdate(membership.user, {
         membershipStatus: "Expired",
       });
     }
+
     membership.status = "canceled";
     membership.auto_renew = false;
     await membership.save();

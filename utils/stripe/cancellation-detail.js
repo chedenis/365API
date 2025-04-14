@@ -1,10 +1,13 @@
 const dayjs = require("dayjs");
 const { stripe } = require("../../config/stripe");
+const { User } = require("../../models");
 
 exports.calculateCancellationDetails = (startDate, testMode = false) => {
-  // const now = dayjs("2026-04-15");
- 
-  const now = dayjs();
+  // const now = dayjs("2026-05-05"); //30-day grace_period
+  // const now = dayjs("2026-08-05"); //before_6_months
+  // const now = dayjs("2026-12-05"); //after_6_months
+
+  const now = dayjs(); //current time period
   const renewalDate = startDate.add(1, "year");
   const gracePeriodEnd = renewalDate.add(30, "day");
   const sixMonthMark = renewalDate.add(6, "month");
@@ -14,8 +17,8 @@ exports.calculateCancellationDetails = (startDate, testMode = false) => {
   let cancellationType = "first_year";
 
   if (testMode) {
-    console.log("Test Mode: Expiring subscription in 3 seconds");
-    cancelDate = now.add(3, "minute"); // Set cancel time to 3 seconds
+    console.log("Test Mode: Expiring subscription in 3 minutes");
+    cancelDate = now.add(3, "minute"); // Set cancel time to 3 minutes
     cancellationType = "test_expire";
   } else if (now.isBefore(renewalDate)) {
     console.log("first year");
@@ -85,7 +88,14 @@ exports.cancelMembershipAndRefund = async (
       membership.refund_amount = refundAmount / 100;
       membership.refund_status = "pending";
       membership.stripe_charge_id = latestInvoice.charge;
+      membership.status = "canceled";
     }
+  }
+
+  if (cancellationType === "grace_period") {
+    await User.findByIdAndUpdate(membership.user, {
+      membershipStatus: "Inactive",
+    });
   }
 
   membership.end_date = cancelDate.toDate();

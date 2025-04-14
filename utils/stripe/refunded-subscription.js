@@ -35,6 +35,8 @@ async function handleChargeRefunded(charge) {
 
     if (refundedAmount === totalAmount) {
       membership.status = "canceled";
+    } else if (refundedAmount === totalAmount / 2) {
+      membership.status = "canceled";
     } else if (refundedAmount > 0 && refundedAmount < totalAmount) {
       membership.status = "active";
     } else {

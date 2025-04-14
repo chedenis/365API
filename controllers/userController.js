@@ -118,6 +118,7 @@ exports.stripeWebhookHandler = async (req, res) => {
     }
 
     case "charge.refunded": {
+      console.log("refunded")
       const charge = event.data.object;
       await handleChargeRefunded(charge);
       break;
