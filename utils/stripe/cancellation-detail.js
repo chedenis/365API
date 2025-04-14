@@ -3,8 +3,8 @@ const { stripe } = require("../../config/stripe");
 const { User } = require("../../models");
 
 exports.calculateCancellationDetails = (startDate, testMode = false) => {
-  const now = dayjs("2026-05-05"); //30-day grace_period
-  // const now = dayjs("2026-08-05"); //before_6_months
+  // const now = dayjs("2026-05-05"); //30-day grace_period
+  const now = dayjs("2026-08-05"); //before_6_months
   // const now = dayjs("2026-12-05"); //after_6_months
 
   // const now = dayjs(); //current time period
