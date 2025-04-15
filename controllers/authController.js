@@ -392,7 +392,7 @@ exports.forgotPassword = async (req, res) => {
         }
       );
       try {
-        await sendEmailOTP(email, "ResetPasswordOtp", getOtp, "member");
+        await sendEmailOTP(email, "Reset Password Otp", getOtp, "member");
       } catch (error) {
         console.error("Email sending failed:", error);
         return res.status(500).json({
@@ -420,7 +420,7 @@ exports.forgotPassword = async (req, res) => {
 
       const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
       try {
-        await sendEmail(email, "ResetPassword", resetLink, "member");
+        await sendEmail(email, "Reset Password", resetLink, "member");
       } catch (error) {
         console.error("Email sending failed:", error);
         return res.status(500).json({ message: "Failed to send reset email" });
