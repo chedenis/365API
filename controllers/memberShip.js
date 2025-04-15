@@ -21,7 +21,7 @@ exports.checkMemberShipStatus = async (req, res) => {
       data: findMembershipStatus.membershipData,
     });
   } else {
-    return res.status(404).json({
+    return res.status(200).json({
       status: false,
       message: "Membership not found",
       data: {},
