@@ -944,7 +944,7 @@ async function storeMemberData(userData) {
         const resetLink = `${URL}/member/reset-password?token=${resetToken}`;
         await sendEmailToOldUserForResetPassword(
           userData?.Email,
-          "ResetPassword",
+          "Password Reset Please",
           {
             name: userData?.Name,
             resetUrl: resetLink,
