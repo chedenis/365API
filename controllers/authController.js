@@ -351,6 +351,7 @@ exports.validateToken = async (req, res) => {
   const { id } = req.params;
   try {
     const resetTokenData = await ResetToken.findOne({ token: id });
+    console.log(resetTokenData, "resetTokenData");
     if (!resetTokenData) {
       return res.status(400).json({ message: "Invalid Token" });
     }
@@ -797,7 +798,7 @@ exports.memberMigration = async (req, res) => {
                 testEmailForSendEmail.includes(userData.Email)
               ) {
                 console.log(userData, "userData");
-                storeMemberData(userData);
+                storeMemberData(userData, res);
               }
             }
           } catch (error) {
@@ -835,7 +836,7 @@ function getOtpJwtToken(user) {
   return generateToken;
 }
 
-async function storeMemberData(userData) {
+async function storeMemberData(userData, res) {
   let newAuth;
   try {
     const findUser = await User.findOne({ email: userData.Email });
@@ -930,7 +931,7 @@ async function storeMemberData(userData) {
 
         if (!user) return res.status(404).json({ message: "User not found" });
         const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-          expiresIn: "1h",
+          expiresIn: "365d",
         });
 
         const resetTokenData = new ResetToken({
