@@ -358,11 +358,11 @@ exports.validateToken = async (req, res) => {
     if (resetTokenData?.used) {
       return res.status(400).json({ message: "Token already used" });
     }
-    if (resetTokenData?.accessed) {
-      return res
-        .status(400)
-        .json({ message: "Token already accessed. The link is invalid" });
-    }
+    // if (resetTokenData?.accessed) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Token already accessed. The link is invalid" });
+    // }
 
     resetTokenData.accessed = true;
     await resetTokenData.save();
@@ -769,12 +769,12 @@ exports.memberMigration = async (req, res) => {
     const results = [];
 
     const testEmailForSendEmail = [
-      // "laura@365dink.com",
-      // "vanessa@thedecorbrief.com",
-      // "chesdenison@gmail.com",
-      // "camilla@cmdconsulting.net",
+      "laura@365dink.com",
+      "vanessa@thedecorbrief.com",
+      "chesdenison@gmail.com",
+      "camilla@cmdconsulting.net",
       "bbhojani@sigmasolve.com",
-      // "rkhatri@sigmasolve.com",
+      "rkhatri@sigmasolve.com",
     ];
 
     // don't make false without permission

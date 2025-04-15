@@ -20,7 +20,6 @@ const resetTokenSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 3600, // Token will automatically expire after 1 hour (3600 seconds)
   },
 });
 
