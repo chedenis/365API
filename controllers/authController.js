@@ -769,12 +769,12 @@ exports.memberMigration = async (req, res) => {
     const results = [];
 
     const testEmailForSendEmail = [
-      "laura@365dink.com",
-      "vanessa@thedecorbrief.com",
-      "chesdenison@gmail.com",
-      "camilla@cmdconsulting.net",
+      // "laura@365dink.com",
+      // "vanessa@thedecorbrief.com",
+      // "chesdenison@gmail.com",
+      // "camilla@cmdconsulting.net",
       "bbhojani@sigmasolve.com",
-      "rkhatri@sigmasolve.com",
+      // "rkhatri@sigmasolve.com",
     ];
 
     // don't make false without permission
