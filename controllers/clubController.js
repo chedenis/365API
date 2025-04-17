@@ -274,14 +274,14 @@ exports.updateClub = async (req, res) => {
           "Membership fee is required when member benefits is Treat like member",
       });
     }
-    if (
-      updates?.reservations === true &&
-      (!updates?.reservationLink || updates?.reservationLink?.trim() === "")
-    ) {
-      return res.status(400).json({
-        error: "ReservationLink is required when reservations is true",
-      });
-    }
+    // if (
+    //   updates?.reservations === true &&
+    //   (!updates?.reservationLink || updates?.reservationLink?.trim() === "")
+    // ) {
+    //   return res.status(400).json({
+    //     error: "ReservationLink is required when reservations is true",
+    //   });
+    // }
     if (
       updates?.reservations === true &&
       (!updates?.reservationSystem ||
