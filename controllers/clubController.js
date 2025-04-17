@@ -966,8 +966,24 @@ exports.filteredList = async (req, res) => {
       passLatLong = false;
     }
 
-    if (searchParams) {
-      filters.clubName = { $regex: searchParams, $options: "i" };
+    if (searchParams && Array.isArray(searchParams)) {
+      const searchParts = searchParams?.flatMap((part) =>
+        part
+          ?.split(" ")
+          ?.map((p) => p?.trim())
+          ?.filter(Boolean)
+      );
+
+      filters.$and = searchParts?.map((word) => ({
+        $or: [
+          { clubName: { $regex: word, $options: "i" } },
+          { "address.street": { $regex: word, $options: "i" } },
+          { "address.city": { $regex: word, $options: "i" } },
+          { "address.state": { $regex: word, $options: "i" } },
+          { "address.zip": { $regex: word, $options: "i" } },
+          { "address.country": { $regex: word, $options: "i" } },
+        ],
+      }));
       passLatLong = false;
     }
 
